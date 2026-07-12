@@ -11,14 +11,17 @@ import type { Tip } from '../lib/types'
  * Stoppen kan altijd, zonder schuldgevoel en zonder straf.
  */
 export default function HeavyFlow({ onClose }: { onClose: () => void }) {
-  const { profile, schedule, tips, reads, markRead, upsertToday } = useAppData()
+  const { profile, schedule, tips, reads, markRead, patchFast, activeFast } = useAppData()
 
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(id)
   }, [])
-  const status = useMemo(() => computeStatus(now, profile, schedule), [now, profile, schedule])
+  const status = useMemo(
+    () => computeStatus(now, profile, schedule, activeFast?.started_at ?? null),
+    [now, profile, schedule, activeFast],
+  )
 
   const [card, setCard] = useState<Tip | null>(null)
   const [seen, setSeen] = useState<number[]>([])
@@ -33,7 +36,7 @@ export default function HeavyFlow({ onClose }: { onClose: () => void }) {
   }, [tips])
 
   function advance(exclude: number[]) {
-    const s = computeStatus(new Date(), profile, schedule)
+    const s = computeStatus(new Date(), profile, schedule, activeFast?.started_at ?? null)
     const t = pickTip(tips, reads, { phase: s.phase, sportDay: s.sport !== null, heavy: true }, exclude)
     if (t) {
       setCard(t)
@@ -59,7 +62,9 @@ export default function HeavyFlow({ onClose }: { onClose: () => void }) {
   }
 
   async function stopToday() {
-    await upsertToday({ status: 'broken', ended_at: new Date().toISOString() })
+    // Patch het lopende vast-record; dat kan van gisteren zijn bij een nachtvast.
+    const day = activeFast?.day ?? new Date().toISOString().slice(0, 10)
+    await patchFast(day, { status: 'broken', ended_at: new Date().toISOString() })
     onClose()
   }
 

@@ -47,7 +47,7 @@ export default function AuthView() {
     <main className="app-main" style={{ justifyContent: 'center' }}>
       <div className="stack" style={{ gap: 24 }}>
         <div>
-          <div className="logo">Vast en Zeker</div>
+          <div className="logo">Zip Your Lip</div>
           <p className="muted small" style={{ marginTop: 8 }}>
             Intermittent fasting zonder gedoe. Eén blik en je weet of je mag eten. Een account
             zorgt dat je data op al je apparaten staat.

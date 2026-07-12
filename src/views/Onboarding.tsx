@@ -87,7 +87,7 @@ export default function Onboarding() {
 
       {step === 0 && (
         <div className="onb-step">
-          <div className="logo">Vast en Zeker</div>
+          <div className="logo">Zip Your Lip</div>
           <div className="card stack">
             <h2>Eerst even dit</h2>
             <p className="muted small">

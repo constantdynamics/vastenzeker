@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'Vast en Zeker',
-        short_name: 'Vast en Zeker',
+        name: 'Zip Your Lip',
+        short_name: 'Zip Your Lip',
         description: 'Nuchtere hulp bij intermittent fasting. Zien of je nu mag eten, en waarom volhouden loont.',
         lang: 'nl',
         start_url: '/vastenzeker/',

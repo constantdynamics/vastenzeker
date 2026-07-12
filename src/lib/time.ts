@@ -2,6 +2,10 @@ import type { Phase, Profile, ScheduleDay, SportType } from './types'
 
 // Alle berekeningen in lokale tijd van het apparaat.
 // Weekdag-conventie: 0 = maandag .. 6 = zondag.
+//
+// Model: vasten start NIET automatisch op de klok. De app adviseert een
+// starttijd (de indicator), maar het vasten begint pas als de gebruiker
+// op de startknop drukt (started_at). Rood = er loopt een gestarte vast.
 
 export function weekdayOf(d: Date): number {
   return (d.getDay() + 6) % 7
@@ -41,6 +45,10 @@ export function formatClock(ms: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
+export function formatHm(d: Date): string {
+  return d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
+}
+
 export interface DayPlan {
   fasting: boolean
   startMin: number
@@ -60,79 +68,90 @@ export function planForDate(date: Date, profile: Profile, schedule: ScheduleDay[
   }
 }
 
-interface Interval {
-  start: number // ms epoch
-  end: number
-  free: boolean // hele vrije dag (geen venster)
-}
-
 function startOfDay(d: Date): Date {
   const c = new Date(d)
   c.setHours(0, 0, 0, 0)
   return c
 }
 
-/**
- * Bouwt eetintervallen (absoluut, ms) van gisteren tot +8 dagen.
- * Vastendag: het ingestelde venster. Vrije dag: de hele dag.
- * Venster over middernacht (eind <= start) loopt door naar de volgende dag.
- */
-function eatingIntervals(now: Date, profile: Profile, schedule: ScheduleDay[]): Interval[] {
-  const raw: Interval[] = []
-  for (let offset = -1; offset <= 8; offset++) {
-    const day = startOfDay(new Date(now.getTime() + offset * 86400000))
-    // startOfDay + verschuiving vermijdt DST-drift bij optellen van hele dagen
-    const dayStart = day.getTime()
-    const plan = planForDate(day, profile, schedule)
-    if (!plan.fasting) {
-      raw.push({ start: dayStart, end: dayStart + 86400000, free: true })
-    } else {
-      const start = dayStart + plan.startMin * 60000
-      let end = dayStart + plan.endMin * 60000
-      if (plan.endMin <= plan.startMin) end += 86400000
-      raw.push({ start, end, free: false })
-    }
-  }
-  raw.sort((a, b) => a.start - b.start)
-  const merged: Interval[] = []
-  for (const iv of raw) {
-    const last = merged[merged.length - 1]
-    if (last && iv.start <= last.end) {
-      last.end = Math.max(last.end, iv.end)
-      last.free = last.free && iv.free
-    } else {
-      merged.push({ ...iv })
-    }
-  }
-  return merged
+interface Opening {
+  open: number // ms epoch: venster opent
+  close: number // ms epoch: venster sluit
+  fastHours: number // hoeveel uur vasten hoort vooraf te gaan (24 - vensterlengte)
 }
 
-export type StatusKind = 'eating' | 'fasting' | 'free' | 'unplanned'
+/** Vensteropeningen van vastendagen, van gisteren tot +8 dagen, gesorteerd. */
+function windowOpenings(now: Date, profile: Profile, schedule: ScheduleDay[]): Opening[] {
+  const out: Opening[] = []
+  for (let offset = -1; offset <= 8; offset++) {
+    const day = startOfDay(new Date(now.getTime() + offset * 86400000))
+    const plan = planForDate(day, profile, schedule)
+    if (!plan.fasting) continue
+    const open = day.getTime() + plan.startMin * 60000
+    let close = day.getTime() + plan.endMin * 60000
+    if (plan.endMin <= plan.startMin) close += 86400000
+    out.push({ open, close, fastHours: 24 - (close - open) / 3600000 })
+  }
+  return out.sort((a, b) => a.open - b.open)
+}
+
+export type StatusKind = 'fasting' | 'eating' | 'idle' | 'free' | 'unplanned'
 
 export interface FastingStatus {
   kind: StatusKind
-  /** ms tot de status omslaat */
+  /** ms tot het volgende relevante omslagpunt */
   msToChange: number
-  /** tijdstip waarop de status omslaat */
   changeAt: Date
   /** 0..1 voortgang van de huidige fase */
   progress: number
-  /** hoe lang de huidige fase al loopt, in ms */
   elapsedMs: number
-  /** totale duur van de huidige fase, in ms */
   totalMs: number
   /** fase-context voor tipselectie */
   phase: Phase
-  /** sporttype van vandaag, indien ingesteld */
   sport: SportType | null
+  /** geadviseerd startmoment van de (volgende) vast — de dagelijkse indicator */
+  advisedStart: Date | null
+  /** het geadviseerde startmoment is al verstreken en er loopt geen vast */
+  overdue: boolean
+  /** einddoel van de actieve vast (alleen bij kind 'fasting') */
+  fastTargetEnd: Date | null
 }
 
-export function computeStatus(now: Date, profile: Profile, schedule: ScheduleDay[]): FastingStatus {
+/** Einddoel van een vast die op `startedAt` begon: de eerstvolgende vensteropening. */
+export function fastTarget(
+  startedAt: Date,
+  profile: Profile,
+  schedule: ScheduleDay[],
+): Date {
+  const openings = windowOpenings(startedAt, profile, schedule)
+  const next = openings.find((o) => o.open > startedAt.getTime())
+  if (next && next.open - startedAt.getTime() <= 48 * 3600000) return new Date(next.open)
+  // vangnet: geen vastendag in zicht → val terug op de profielduur
+  const s = parseTime(profile.window_start)
+  let e = parseTime(profile.window_end)
+  if (e <= s) e += 1440
+  const fastHours = 24 - (e - s) / 60
+  return new Date(startedAt.getTime() + fastHours * 3600000)
+}
+
+export function computeStatus(
+  now: Date,
+  profile: Profile,
+  schedule: ScheduleDay[],
+  activeFastStartedAt?: string | null,
+): FastingStatus {
   const todayPlan = planForDate(now, profile, schedule)
-  const anyFasting =
-    schedule.length === 0 || schedule.some((s) => s.fasting)
+  const anyFasting = schedule.length === 0 || schedule.some((s) => s.fasting)
+  const base = {
+    sport: todayPlan.sport,
+    advisedStart: null as Date | null,
+    overdue: false,
+    fastTargetEnd: null as Date | null,
+  }
+
   if (!anyFasting) {
     return {
+      ...base,
       kind: 'unplanned',
       msToChange: 0,
       changeAt: now,
@@ -140,49 +159,97 @@ export function computeStatus(now: Date, profile: Profile, schedule: ScheduleDay
       elapsedMs: 0,
       totalMs: 1,
       phase: 'any',
-      sport: todayPlan.sport,
     }
   }
 
-  const intervals = eatingIntervals(now, profile, schedule)
   const t = now.getTime()
-  const current = intervals.find((iv) => t >= iv.start && t < iv.end)
+  const openings = windowOpenings(now, profile, schedule)
 
-  if (current) {
-    const elapsed = t - current.start
-    const total = current.end - current.start
+  // 1. Loopt er een gestarte vast?
+  if (activeFastStartedAt) {
+    const start = new Date(activeFastStartedAt)
+    const target = fastTarget(start, profile, schedule)
+    // Geen ondergrens op t: een tick-achterstand van de klok mag een net
+    // gestarte vast niet als "voorbij" behandelen.
+    if (t < target.getTime()) {
+      const total = Math.max(1, target.getTime() - start.getTime())
+      const elapsed = Math.max(0, t - start.getTime())
+      const frac = elapsed / total
+      return {
+        ...base,
+        kind: 'fasting',
+        msToChange: target.getTime() - t,
+        changeAt: target,
+        progress: frac,
+        elapsedMs: elapsed,
+        totalMs: total,
+        phase: frac < 0.33 ? 'fast_early' : frac < 0.75 ? 'fast_mid' : 'fast_late',
+        fastTargetEnd: target,
+      }
+    }
+    // vast is voorbij zijn doel: behandel als niet-actief; de UI rondt hem af
+  }
+
+  // 2. Geen actieve vast. De indicator: wanneer zou de volgende vast moeten starten?
+  const nextOpening = openings.find((o) => o.open > t)
+  const advisedStart = nextOpening
+    ? new Date(nextOpening.open - nextOpening.fastHours * 3600000)
+    : null
+  const overdue = advisedStart !== null && advisedStart.getTime() <= t
+
+  // Zitten we nu in een eetvenster van een vastendag?
+  const inWindow = openings.find((o) => t >= o.open && t < o.close)
+  if (inWindow) {
+    const total = inWindow.close - inWindow.open
+    const elapsed = t - inWindow.open
     const frac = elapsed / total
-    const phase: Phase = frac < 0.25 ? 'eat_open' : frac < 0.8 ? 'eat_mid' : 'eat_close'
     return {
-      kind: current.free ? 'free' : 'eating',
-      msToChange: current.end - t,
-      changeAt: new Date(current.end),
+      ...base,
+      kind: 'eating',
+      msToChange: inWindow.close - t,
+      changeAt: new Date(inWindow.close),
       progress: frac,
       elapsedMs: elapsed,
       totalMs: total,
-      phase: current.free ? 'any' : phase,
-      sport: todayPlan.sport,
+      phase: frac < 0.25 ? 'eat_open' : frac < 0.8 ? 'eat_mid' : 'eat_close',
+      advisedStart,
+      overdue,
     }
   }
 
-  // We vasten: zoek het vorige einde en de volgende opening.
-  const prev = [...intervals].reverse().find((iv) => iv.end <= t)
-  const next = intervals.find((iv) => iv.start > t)
-  const fastStart = prev ? prev.end : t - 1
-  const fastEnd = next ? next.start : t + 1
-  const total = Math.max(1, fastEnd - fastStart)
-  const elapsed = t - fastStart
-  const frac = Math.min(1, elapsed / total)
-  const phase: Phase = frac < 0.33 ? 'fast_early' : frac < 0.75 ? 'fast_mid' : 'fast_late'
+  // Vrije dag (geen venster vandaag) en geen actieve vast → vrij
+  if (!todayPlan.fasting) {
+    const changeAt = advisedStart && advisedStart.getTime() > t ? advisedStart : startOfDay(new Date(t + 86400000))
+    return {
+      ...base,
+      kind: 'free',
+      msToChange: changeAt.getTime() - t,
+      changeAt,
+      progress: 0,
+      elapsedMs: 0,
+      totalMs: 1,
+      phase: 'any',
+      advisedStart,
+      overdue,
+    }
+  }
+
+  // 3. Venster dicht, vast niet gestart: idle. Omslagpunt = volgende opening.
+  const next = nextOpening ?? openings[openings.length - 1]
+  const ref = advisedStart ? advisedStart.getTime() : t
+  const total = next ? Math.max(1, next.open - ref) : 1
+  const elapsed = Math.max(0, t - ref)
   return {
-    kind: 'fasting',
-    msToChange: fastEnd - t,
-    changeAt: new Date(fastEnd),
-    progress: frac,
+    ...base,
+    kind: 'idle',
+    msToChange: next ? next.open - t : 0,
+    changeAt: next ? new Date(next.open) : now,
+    progress: Math.min(1, elapsed / total),
     elapsedMs: elapsed,
     totalMs: total,
-    phase,
-    sport: todayPlan.sport,
+    phase: 'any',
+    advisedStart,
+    overdue,
   }
 }
 

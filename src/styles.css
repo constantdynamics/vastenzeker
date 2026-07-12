@@ -218,6 +218,43 @@ input[type='time'] {
   box-shadow: 0 6px 32px -10px rgba(219, 39, 119, 0.7);
 }
 
+/* De grote neonknop waarmee het vasten daadwerkelijk begint */
+.btn-start {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 20px 16px;
+  border-radius: 20px;
+  border: none;
+  color: #0b0b10;
+  background: linear-gradient(120deg, var(--neon-magenta), var(--neon-cyan), var(--neon-lime));
+  background-size: 200% 200%;
+  animation: btn-start-glow 4s ease infinite;
+  box-shadow:
+    0 0 28px -4px rgba(255, 46, 230, 0.6),
+    0 0 48px -8px rgba(0, 229, 255, 0.5);
+  transition: transform 0.08s ease;
+}
+.btn-start:active { transform: scale(0.97); }
+.btn-start-label {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.btn-start-sub {
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+@keyframes btn-start-glow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
 /* ---------- chips ---------- */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {

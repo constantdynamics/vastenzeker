@@ -33,9 +33,13 @@ export interface AppData {
   updateProfile: (patch: Partial<Profile>) => Promise<void>
   saveScheduleDay: (day: ScheduleDay) => Promise<void>
   toggleFavorite: (tipId: number) => Promise<void>
+  /** Upsert het dag-record van een willekeurige dag (bijv. gisteren voor een nachtvast). */
+  patchFast: (day: string, patch: Partial<FastDay>) => Promise<void>
   upsertToday: (patch: Partial<FastDay>) => Promise<void>
   addMeasurement: (measuredOn: string, weightKg: number) => Promise<void>
   markRead: (tipId: number, heavy: boolean) => void
+  /** Het lopende (gestarte, nog niet afgeronde) vast-record, of null. */
+  activeFast: FastDay | null
 }
 
 const DataContext = createContext<AppData | null>(null)
@@ -67,7 +71,7 @@ export default function App() {
 function Splash() {
   return (
     <main className="app-main" style={{ justifyContent: 'center', alignItems: 'center' }}>
-      <div className="logo">Vast en Zeker</div>
+      <div className="logo">Zip Your Lip</div>
     </main>
   )
 }
@@ -152,11 +156,10 @@ function AuthedApp({ userId }: { userId: string }) {
     [userId, favorites],
   )
 
-  const upsertToday = useCallback(
-    async (patch: Partial<FastDay>) => {
-      const today = dateKey(new Date())
-      const existing = fasts.find((f) => f.day === today)
-      const row = { user_id: userId, day: today, ...patch }
+  const patchFast = useCallback(
+    async (day: string, patch: Partial<FastDay>) => {
+      const existing = fasts.find((f) => f.day === day)
+      const row = { user_id: userId, day, ...patch }
       const { data, error } = await supabase
         .from('if_fasts')
         .upsert(existing ? { ...row, id: existing.id } : row, { onConflict: 'user_id,day' })
@@ -164,12 +167,17 @@ function AuthedApp({ userId }: { userId: string }) {
         .single()
       if (!error && data) {
         setFasts((prev) => {
-          const rest = prev.filter((f) => f.day !== today)
-          return [data as FastDay, ...rest]
+          const rest = prev.filter((f) => f.day !== day)
+          return [data as FastDay, ...rest].sort((a, b) => (a.day < b.day ? 1 : -1))
         })
       }
     },
     [userId, fasts],
+  )
+
+  const upsertToday = useCallback(
+    (patch: Partial<FastDay>) => patchFast(dateKey(new Date()), patch),
+    [patchFast],
   )
 
   const addMeasurement = useCallback(
@@ -219,6 +227,9 @@ function AuthedApp({ userId }: { userId: string }) {
 
   if (profile === 'loading') return <Splash />
 
+  const activeFast =
+    fasts.find((f) => f.status === 'active' && f.started_at) ?? null
+
   const data: AppData = {
     userId,
     profile: (profile as Profile) ?? emptyProfile(userId),
@@ -232,9 +243,11 @@ function AuthedApp({ userId }: { userId: string }) {
     updateProfile,
     saveScheduleDay,
     toggleFavorite,
+    patchFast,
     upsertToday,
     addMeasurement,
     markRead,
+    activeFast,
   }
 
   const needsOnboarding = !profile || !profile.onboarded_at

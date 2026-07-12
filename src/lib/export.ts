@@ -26,7 +26,7 @@ async function fetchAll(userId: string) {
   ])
   return {
     exported_at: new Date().toISOString(),
-    app: 'Vast en Zeker',
+    app: 'Zip Your Lip',
     profile: profile.data,
     schedule: schedule.data,
     fasts: fasts.data,
@@ -39,7 +39,7 @@ async function fetchAll(userId: string) {
 export async function exportJson(userId: string) {
   const data = await fetchAll(userId)
   download(
-    `vast-en-zeker-export-${data.exported_at.slice(0, 10)}.json`,
+    `zip-your-lip-export-${data.exported_at.slice(0, 10)}.json`,
     'application/json',
     JSON.stringify(data, null, 2),
   )
@@ -60,9 +60,9 @@ export async function exportCsv(userId: string) {
   const stamp = data.exported_at.slice(0, 10)
   const fasts = (data.fasts ?? []) as Record<string, unknown>[]
   const measurements = (data.measurements ?? []) as Record<string, unknown>[]
-  if (fasts.length > 0) download(`vast-en-zeker-dagen-${stamp}.csv`, 'text/csv', toCsv(fasts))
+  if (fasts.length > 0) download(`zip-your-lip-dagen-${stamp}.csv`, 'text/csv', toCsv(fasts))
   if (measurements.length > 0)
-    download(`vast-en-zeker-gewicht-${stamp}.csv`, 'text/csv', toCsv(measurements))
+    download(`zip-your-lip-gewicht-${stamp}.csv`, 'text/csv', toCsv(measurements))
   if (fasts.length === 0 && measurements.length === 0)
-    download(`vast-en-zeker-leeg-${stamp}.csv`, 'text/csv', 'nog geen data')
+    download(`zip-your-lip-leeg-${stamp}.csv`, 'text/csv', 'nog geen data')
 }
