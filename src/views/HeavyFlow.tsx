@@ -11,7 +11,7 @@ import type { Tip, TipCategory } from '../lib/types'
  * Stoppen kan altijd, zonder schuldgevoel en zonder straf.
  */
 export default function HeavyFlow({ onClose }: { onClose: () => void }) {
-  const { profile, schedule, tips, reads, markRead, patchFast, activeFast } = useAppData()
+  const { profile, schedule, tips, reads, markRead, patchFast, activeFast, refresh } = useAppData()
 
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
@@ -172,6 +172,25 @@ export default function HeavyFlow({ onClose }: { onClose: () => void }) {
             <p className="tip-body">{card.body}</p>
             {card.action && <div className="heavy-action">Doe nu: {card.action}</div>}
           </article>
+        ) : heavyCats.length === 0 ? (
+          <div className="heavy-card" style={{ ['--accent' as string]: 'var(--neon-purple)' }}>
+            <h2 style={{ fontSize: 20 }}>Kaarten konden niet geladen worden</h2>
+            <p className="tip-body">
+              Waarschijnlijk hapert je verbinding. Probeer het opnieuw — en onthoud intussen: wat
+              je nu voelt is een golf, geen noodsituatie. Drink een glas water.
+            </p>
+            <button
+              className="btn"
+              style={{ marginTop: 'auto' }}
+              onClick={() => {
+                // eerst resetten, dan verversen: de tips-effect pakt de nieuwe lading op
+                started.current = false
+                refresh()
+              }}
+            >
+              Opnieuw laden
+            </button>
+          </div>
         ) : (
           <p className="muted">Kaarten laden…</p>
         )}

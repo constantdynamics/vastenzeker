@@ -24,6 +24,7 @@ export default function Home() {
     patchFast,
     upsertToday,
     activeFast,
+    refresh,
   } = data
 
   const [now, setNow] = useState(() => new Date())
@@ -73,7 +74,11 @@ export default function Home() {
       setTipShownAt(Date.now())
       setShownIds((prev) => [...prev.slice(-20), t.id])
       markRead(t.id, false)
-      localStorage.setItem(TIP_STATE_KEY, JSON.stringify({ tipId: t.id, shownAt: Date.now() }))
+      try {
+        localStorage.setItem(TIP_STATE_KEY, JSON.stringify({ tipId: t.id, shownAt: Date.now() }))
+      } catch {
+        // opslag vol of geblokkeerd: geen ramp, dan rouleert hij vaker
+      }
     }
   }
 
@@ -194,6 +199,17 @@ export default function Home() {
               onToggleFavorite={() => toggleFavorite(tip.id)}
               onNext={nextTip}
             />
+          )}
+          {!tip && tips.length === 0 && (
+            <div className="card stack">
+              <p className="muted small">
+                De tips konden niet geladen worden. Controleer je verbinding en probeer het
+                opnieuw.
+              </p>
+              <button className="btn" onClick={() => refresh()}>
+                Opnieuw laden
+              </button>
+            </div>
           )}
 
           {streak.current > 0 && (
