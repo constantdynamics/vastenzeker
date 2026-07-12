@@ -121,7 +121,7 @@ export default function Home() {
         <div className={`advice ${status.overdue ? 'caution' : 'info'}`} role="status">
           <span>
             {status.overdue
-              ? `Je wilde rond ${formatHm(status.advisedStart)} beginnen met vasten. Later starten is geen ramp — je vast wordt alleen korter.`
+              ? `Je wilde rond ${formatHm(status.advisedStart)} beginnen met vasten. Later starten kan gewoon — je vast duurt even lang en is dus later klaar.`
               : `Indicator voor vandaag: rond ${formatHm(status.advisedStart)} beginnen met vasten.`}
           </span>
         </div>

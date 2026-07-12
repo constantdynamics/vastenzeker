@@ -32,11 +32,15 @@ s = computeStatus(at('2026-07-13T22:00:00'), profile, allFasting, null)
 check('avond zonder start = idle', [s.kind, s.overdue], ['idle', true])
 check('idle omslagpunt di 12u', [s.changeAt.getDate(), s.changeAt.getHours()], [14, 12])
 
-// 3. Vast gestart ma 20:15 → om 23:00 rood, doel di 12:00
+// 3. Vast gestart ma 20:15 → om 23:00 rood, doel = start + 16u = di 12:15
 s = computeStatus(at('2026-07-13T23:00:00'), profile, allFasting, '2026-07-13T20:15:00')
 check('gestarte vast = rood', s.kind, 'fasting')
-check('doel di 12u', [s.fastTargetEnd.getDate(), s.fastTargetEnd.getHours()], [14, 12])
+check('doel di 12:15', [s.fastTargetEnd.getDate(), s.fastTargetEnd.getHours(), s.fastTargetEnd.getMinutes()], [14, 12, 15])
 check('2u45m bezig', Math.round(s.elapsedMs / 60000), 165)
+
+// 3b. Eerder gestart = eerder klaar: start ma 18:25 → klaar di 10:25 (16 uur)
+s = computeStatus(at('2026-07-13T20:20:00'), profile, allFasting, '2026-07-13T18:25:00')
+check('vroege start: klaar om 10:25', [s.fastTargetEnd.getDate(), s.fastTargetEnd.getHours(), s.fastTargetEnd.getMinutes()], [14, 10, 25])
 
 // 4. Vast voorbij doel → niet meer rood; in venster → eten (UI rondt af)
 s = computeStatus(at('2026-07-14T13:00:00'), profile, allFasting, '2026-07-13T20:00:00')
@@ -57,15 +61,15 @@ const nightProfile = { window_start: '18:00:00', window_end: '02:00:00' }
 s = computeStatus(at('2026-07-13T23:00:00'), nightProfile, allFasting, null)
 check('nachtvenster: eten om 23u', [s.kind, s.changeAt.getDate(), s.changeAt.getHours()], ['eating', 14, 2])
 
-// 8. fastTarget: normale nachtvast eindigt bij volgende opening
+// 8. fastTarget: altijd start + protocolduur (16u bij 16:8)
 let target = fastTarget(at('2026-07-13T20:15:00'), profile, allFasting)
-check('fastTarget volgende opening', [target.getDate(), target.getHours()], [14, 12])
+check('fastTarget = start + 16u', [target.getDate(), target.getHours(), target.getMinutes()], [14, 12, 15])
 
-// 9. fastTarget-vangnet: geen opening binnen 48u → profielduur (16u)
+// 9. fastTarget zonder vastendag in zicht → profielduur (16u)
 const onlyMonday = Array.from({ length: 7 }, (_, weekday) => ({
   weekday, fasting: weekday === 0, window_start: null, window_end: null, sport_type: null,
 }))
-target = fastTarget(at('2026-07-14T20:00:00'), profile, onlyMonday) // di-avond, volgende opening pas ma
+target = fastTarget(at('2026-07-14T20:00:00'), profile, onlyMonday) // di-avond, volgende vastendag pas ma
 check('fastTarget vangnet 16u', Math.round((target.getTime() - at('2026-07-14T20:00:00').getTime()) / 3600000), 16)
 
 // 10. Geen enkele vastendag → unplanned

@@ -117,7 +117,13 @@ export interface FastingStatus {
   fastTargetEnd: Date | null
 }
 
-/** Einddoel van een vast die op `startedAt` begon: de eerstvolgende vensteropening. */
+/**
+ * Einddoel van een vast die op `startedAt` begon: starttijd + de vastduur
+ * van het protocol (bijv. 16 uur bij 16:8). De knop start dus een teller
+ * met vaste duur — eerder starten betekent eerder klaar, later starten
+ * betekent later klaar. De duur komt van de eerstvolgende vastendag in
+ * het schema, met de profielinstelling als vangnet.
+ */
 export function fastTarget(
   startedAt: Date,
   profile: Profile,
@@ -125,12 +131,15 @@ export function fastTarget(
 ): Date {
   const openings = windowOpenings(startedAt, profile, schedule)
   const next = openings.find((o) => o.open > startedAt.getTime())
-  if (next && next.open - startedAt.getTime() <= 48 * 3600000) return new Date(next.open)
-  // vangnet: geen vastendag in zicht → val terug op de profielduur
-  const s = parseTime(profile.window_start)
-  let e = parseTime(profile.window_end)
-  if (e <= s) e += 1440
-  const fastHours = 24 - (e - s) / 60
+  let fastHours: number
+  if (next) {
+    fastHours = next.fastHours
+  } else {
+    const s = parseTime(profile.window_start)
+    let e = parseTime(profile.window_end)
+    if (e <= s) e += 1440
+    fastHours = 24 - (e - s) / 60
+  }
   return new Date(startedAt.getTime() + fastHours * 3600000)
 }
 
