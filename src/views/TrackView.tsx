@@ -27,6 +27,7 @@ export default function TrackView() {
   return (
     <div className="stack" style={{ gap: 16 }}>
       <h2>Vandaag</h2>
+      <div className="two-col">
       <div className="card stack">
         <p className="muted small">Hoe ging het vasten vandaag?</p>
         <div className="chips">
@@ -75,6 +76,7 @@ export default function TrackView() {
           value={todayFast?.focus ?? null}
           onSet={(v) => upsertToday({ focus: v })}
         />
+      </div>
       </div>
 
       <h2>Reeks</h2>

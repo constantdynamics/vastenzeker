@@ -702,6 +702,110 @@ input[type='time'] {
 
 a { color: var(--neon-cyan); }
 
+/* ---------- lay-outwrappers (mobiel: gewoon gestapeld) ---------- */
+.nav-brand { display: none; }
+.home-cols,
+.home-col,
+.two-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.fav-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+/* ---------- desktop ---------- */
+@media (min-width: 900px) {
+  #root {
+    max-width: 1180px;
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  /* tabbalk wordt een zijbalk */
+  .nav {
+    position: sticky;
+    top: 0;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    order: -1;
+    width: 212px;
+    max-width: none;
+    height: 100dvh;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 6px;
+    padding: 28px 14px;
+    border-top: none;
+    border-right: 1px solid var(--border);
+    background: transparent;
+    backdrop-filter: none;
+    flex-shrink: 0;
+  }
+  .nav-brand {
+    display: block;
+    font-size: 21px;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    background: linear-gradient(120deg, var(--neon-magenta), var(--neon-cyan), var(--neon-lime));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 0 14px rgba(255, 46, 230, 0.3));
+    padding: 0 10px 20px;
+  }
+  .nav button {
+    flex: 0 0 auto;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    width: 100%;
+    font-size: 15px;
+    padding: 12px 14px;
+    border-radius: 12px;
+  }
+  .nav button.on {
+    background: var(--bg-raised);
+  }
+
+  .app-main {
+    flex: 1;
+    min-width: 0;
+    padding: 36px 44px 48px;
+    gap: 20px;
+  }
+
+  /* hoofdscherm in twee kolommen */
+  .home-cols {
+    flex-direction: row;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  .home-col { flex: 1; }
+
+  .two-col { flex-direction: row; }
+  .two-col > * { flex: 1; }
+
+  .fav-grid { grid-template-columns: 1fr 1fr; }
+
+  .status-timer { font-size: 52px; }
+  .heavy-screen { max-width: 660px; }
+  .heavy-card { min-height: 340px; }
+
+  /* het weekschema krijgt lucht */
+  .week-grid { gap: 8px; }
+  .wg-axis { width: 32px; }
+  .wg-axis span { font-size: 11px; }
+  .wg-eat em, .wg-sport em { font-size: 10px; }
+  .wg-advise em { font-size: 10px; }
+  .wg-head { font-size: 13px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }

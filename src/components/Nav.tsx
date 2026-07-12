@@ -60,6 +60,9 @@ const items: { key: Tab; label: string; color: string; icon: JSX.Element }[] = [
 export default function Nav({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
   return (
     <nav className="nav" aria-label="Hoofdnavigatie">
+      <div className="nav-brand" aria-hidden>
+        Zip Your Lip
+      </div>
       {items.map((it) => (
         <button
           key={it.key}

@@ -140,76 +140,82 @@ export default function Home() {
 
   return (
     <>
-      <section className="status-hero" aria-live="polite">
-        <StatusBadge kind={status.kind} />
-        <StatusRing status={status} />
-        <p className="muted small" style={{ textAlign: 'center' }}>
-          {statusLine(status, activeFast?.started_at ?? null)}
-        </p>
-      </section>
+      <div className="home-cols">
+        <div className="home-col">
+          <section className="status-hero" aria-live="polite">
+            <StatusBadge kind={status.kind} />
+            <StatusRing status={status} />
+            <p className="muted small" style={{ textAlign: 'center' }}>
+              {statusLine(status, activeFast?.started_at ?? null)}
+            </p>
+          </section>
 
-      {!fasting && status.kind !== 'unplanned' && status.advisedStart && (
-        <div className={`advice ${status.overdue ? 'caution' : 'info'}`} role="status">
-          <span>
-            {status.overdue
-              ? `Je wilde rond ${formatHm(status.advisedStart)} beginnen met vasten. Later starten kan gewoon — je vast duurt even lang en is dus later klaar.`
-              : `Indicator voor vandaag: rond ${formatHm(status.advisedStart)} beginnen met vasten.`}
-          </span>
-        </div>
-      )}
-
-      {!fasting && status.kind !== 'unplanned' && (
-        <button className="btn-start" onClick={startFast}>
-          <span className="btn-start-label">Start het vasten</span>
-          <span className="btn-start-sub">vanaf dit moment</span>
-        </button>
-      )}
-
-      {fasting && (
-        <button className="btn-heavy" onClick={openHeavy}>
-          Ik heb het zwaar
-        </button>
-      )}
-
-      {signal.show && (
-        <div className="advice caution" role="status">
-          <span>{signal.text}</span>
-        </div>
-      )}
-
-      {tip && (
-        <TipCard
-          tip={tip}
-          isFavorite={favorites.has(tip.id)}
-          onToggleFavorite={() => toggleFavorite(tip.id)}
-          onNext={nextTip}
-        />
-      )}
-
-      {streak.current > 0 && (
-        <div className="card row">
-          <div className="stat-tile">
-            <div className="stat-value" style={{ color: 'var(--neon-lime)' }}>
-              {streak.current}
+          {!fasting && status.kind !== 'unplanned' && status.advisedStart && (
+            <div className={`advice ${status.overdue ? 'caution' : 'info'}`} role="status">
+              <span>
+                {status.overdue
+                  ? `Je wilde rond ${formatHm(status.advisedStart)} beginnen met vasten. Later starten kan gewoon — je vast duurt even lang en is dus later klaar.`
+                  : `Indicator voor vandaag: rond ${formatHm(status.advisedStart)} beginnen met vasten.`}
+              </span>
             </div>
-            <div className="stat-label">dagen op rij</div>
-          </div>
-          <div className="stat-tile">
-            <div className="stat-value" style={{ color: 'var(--neon-cyan)' }}>
-              {streak.best}
+          )}
+
+          {!fasting && status.kind !== 'unplanned' && (
+            <button className="btn-start" onClick={startFast}>
+              <span className="btn-start-label">Start het vasten</span>
+              <span className="btn-start-sub">vanaf dit moment</span>
+            </button>
+          )}
+
+          {fasting && (
+            <button className="btn-heavy" onClick={openHeavy}>
+              Ik heb het zwaar
+            </button>
+          )}
+
+          {signal.show && (
+            <div className="advice caution" role="status">
+              <span>{signal.text}</span>
             </div>
-            <div className="stat-label">beste reeks</div>
-          </div>
+          )}
+
+          {todayFast?.status === 'broken' && !fasting && (
+            <p className="faint" style={{ textAlign: 'center' }}>
+              Vandaag eerder gestopt. Prima keuze als het niet ging — morgen weer een kans.
+            </p>
+          )}
         </div>
-      )}
+
+        <div className="home-col">
+          {tip && (
+            <TipCard
+              tip={tip}
+              isFavorite={favorites.has(tip.id)}
+              onToggleFavorite={() => toggleFavorite(tip.id)}
+              onNext={nextTip}
+            />
+          )}
+
+          {streak.current > 0 && (
+            <div className="card row">
+              <div className="stat-tile">
+                <div className="stat-value" style={{ color: 'var(--neon-lime)' }}>
+                  {streak.current}
+                </div>
+                <div className="stat-label">dagen op rij</div>
+              </div>
+              <div className="stat-tile">
+                <div className="stat-value" style={{ color: 'var(--neon-cyan)' }}>
+                  {streak.best}
+                </div>
+                <div className="stat-label">beste reeks</div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {heavyOpen && <HeavyFlow onClose={() => setHeavyOpen(false)} />}
-      {/* todayFast wordt hier alleen gelezen voor context; logging gebeurt onder Meten */}
-      {todayFast?.status === 'broken' && !fasting && (
-        <p className="faint" style={{ textAlign: 'center' }}>
-          Vandaag eerder gestopt. Prima keuze als het niet ging — morgen weer een kans.
-        </p>
-      )}
     </>
   )
 }
