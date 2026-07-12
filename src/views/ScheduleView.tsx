@@ -1,17 +1,17 @@
 import { useMemo, useState } from 'react'
 import { useAppData } from '../App'
-import { scheduleAdvice, sportAdvice, swapAdvice, windowAdvice } from '../lib/advice'
-import { protocolName, weekdayOf, windowLengthHours } from '../lib/time'
+import { scheduleAdvice, sportAdvice, sportFixes, swapAdvice, windowAdvice } from '../lib/advice'
+import { formatTime, parseTime, weekdayOf, windowLengthHours } from '../lib/time'
 import WeekGrid from '../components/WeekGrid'
 import { SPORT_LABELS, WEEKDAY_FULL, WEEKDAY_LABELS } from '../lib/types'
 import type { ScheduleDay, SportType } from '../lib/types'
 
-const PRESETS: { name: string; start: string; end: string }[] = [
-  { name: '14:10', start: '10:00', end: '20:00' },
-  { name: '16:8', start: '12:00', end: '20:00' },
-  { name: '18:6', start: '12:00', end: '18:00' },
-  { name: '20:4', start: '14:00', end: '18:00' },
-  { name: 'OMAD', start: '17:00', end: '18:00' },
+const PRESETS: { name: string; len: number; start: string; end: string }[] = [
+  { name: '14:10', len: 10, start: '10:00', end: '20:00' },
+  { name: '16:8', len: 8, start: '12:00', end: '20:00' },
+  { name: '18:6', len: 6, start: '12:00', end: '18:00' },
+  { name: '20:4', len: 4, start: '14:00', end: '18:00' },
+  { name: 'OMAD', len: 1, start: '17:00', end: '18:00' },
 ]
 
 export default function ScheduleView() {
@@ -42,14 +42,34 @@ export default function ScheduleView() {
   const winAdvice = useMemo(() => windowAdvice(start, end), [start, end])
   const schedAdvice = useMemo(() => scheduleAdvice(days, profile), [days, profile])
 
-  async function setWindow(newStart: string, newEnd: string) {
+  // Het protocol is leidend: staat er een preset aan, dan houdt het venster
+  // zijn vaste lengte en schuift de andere kant automatisch mee.
+  const activePreset = PRESETS.find((p) => p.name === profile.protocol) ?? null
+
+  async function setWindow(newStart: string, newEnd: string, protocol: string) {
     setSaving(true)
-    await updateProfile({
-      window_start: newStart,
-      window_end: newEnd,
-      protocol: protocolName(newStart, newEnd),
-    })
+    await updateProfile({ window_start: newStart, window_end: newEnd, protocol })
     setSaving(false)
+  }
+
+  function onStartChange(v: string) {
+    if (!v) return
+    if (activePreset) {
+      const s = parseTime(v)
+      setWindow(v, formatTime(s + activePreset.len * 60), activePreset.name)
+    } else {
+      setWindow(v, end, 'vrij')
+    }
+  }
+
+  function onEndChange(v: string) {
+    if (!v) return
+    if (activePreset) {
+      const e = parseTime(v)
+      setWindow(formatTime(e - activePreset.len * 60), v, activePreset.name)
+    } else {
+      setWindow(start, v, 'vrij')
+    }
   }
 
   async function patchDay(day: ScheduleDay, patch: Partial<ScheduleDay>) {
@@ -66,13 +86,20 @@ export default function ScheduleView() {
         {PRESETS.map((p) => (
           <button
             key={p.name}
-            className={`chip ${protocolName(start, end) === p.name ? 'on' : ''}`}
+            className={`chip ${activePreset?.name === p.name ? 'on' : ''}`}
             style={{ ['--chip-color' as string]: 'var(--neon-cyan)' }}
-            onClick={() => setWindow(p.start, p.end)}
+            onClick={() => setWindow(p.start, p.end, p.name)}
           >
             {p.name}
           </button>
         ))}
+        <button
+          className={`chip ${activePreset ? '' : 'on'}`}
+          style={{ ['--chip-color' as string]: 'var(--neon-purple)' }}
+          onClick={() => updateProfile({ protocol: 'vrij' })}
+        >
+          vrij
+        </button>
       </div>
 
       <div className="card stack">
@@ -83,7 +110,7 @@ export default function ScheduleView() {
               id="win-start"
               type="time"
               value={start}
-              onChange={(e) => e.target.value && setWindow(e.target.value, end)}
+              onChange={(e) => onStartChange(e.target.value)}
             />
           </div>
           <div className="field">
@@ -92,13 +119,16 @@ export default function ScheduleView() {
               id="win-end"
               type="time"
               value={end}
-              onChange={(e) => e.target.value && setWindow(start, e.target.value)}
+              onChange={(e) => onEndChange(e.target.value)}
             />
           </div>
         </div>
         <p className="muted small">
-          {Math.round(24 - eatHours)} uur vasten, {Math.round(eatHours)} uur eten (
-          {protocolName(start, end)}){saving ? ' · opslaan…' : ''}
+          {Math.round(24 - eatHours)} uur vasten, {Math.round(eatHours)} uur eten
+          {activePreset
+            ? ` — ${activePreset.name} blijft vast staan: pas je één tijd aan, dan schuift de andere mee`
+            : ' — vrij ingesteld: beide tijden los aanpasbaar'}
+          {saving ? ' · opslaan…' : ''}
         </p>
       </div>
 
@@ -114,7 +144,13 @@ export default function ScheduleView() {
         je vast. Tik op een dag om hem aan te passen — het advies rekent direct mee.
       </p>
 
-      <WeekGrid days={days} profile={profile} selected={selectedDay} onSelect={setSelectedDay} />
+      <WeekGrid
+        days={days}
+        profile={profile}
+        selected={selectedDay}
+        onSelect={setSelectedDay}
+        onPatch={patchDay}
+      />
 
       <div className="wg-legend">
         <span><i style={{ background: 'rgba(46,224,106,0.4)' }} /> eetvenster</span>
@@ -138,6 +174,20 @@ export default function ScheduleView() {
               <span>{a.text}</span>
             </div>
           ))}
+          {sportFixes(days[selectedDay], profile).length > 0 && (
+            <div className="chips">
+              {sportFixes(days[selectedDay], profile).map((f, i) => (
+                <button
+                  key={i}
+                  className="chip"
+                  style={{ ['--chip-color' as string]: 'var(--neon-lime)' }}
+                  onClick={() => patchDay(days[selectedDay], f.patch)}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

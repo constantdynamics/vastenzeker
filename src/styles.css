@@ -383,6 +383,16 @@ input[type='time'] {
   font-weight: 900;
   font-variant-numeric: tabular-nums;
 }
+.heavy-cats {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 10px 14px 2px;
+  scrollbar-width: none;
+}
+.heavy-cats::-webkit-scrollbar { display: none; }
+.heavy-cats .chip { flex-shrink: 0; font-size: 12px; padding: 5px 11px; }
+
 .heavy-card-zone {
   flex: 1;
   display: flex;
@@ -494,6 +504,7 @@ input[type='time'] {
 .wg-col.today { border-color: rgba(0, 229, 255, 0.55); box-shadow: 0 0 12px -4px var(--neon-cyan); }
 .wg-col.selected { border-color: var(--neon-magenta); box-shadow: 0 0 12px -4px var(--neon-magenta); }
 .wg-col.free { opacity: 0.75; }
+.wg-col { cursor: pointer; }
 .wg-head {
   display: flex;
   align-items: center;
@@ -510,44 +521,87 @@ input[type='time'] {
 .wg-flag { font-size: 10px; }
 .wg-flag.warn { color: var(--status-red); }
 .wg-flag.caution { color: var(--neon-orange); }
-.wg-body { position: relative; display: block; }
+.wg-body {
+  position: relative;
+  display: block;
+  /* subtiel uurraster zoals in een agenda */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--wg-hour, 25px) - 1px),
+    rgba(255, 255, 255, 0.05) calc(var(--wg-hour, 25px) - 1px),
+    rgba(255, 255, 255, 0.05) var(--wg-hour, 25px)
+  );
+}
 .wg-eat {
   position: absolute;
   left: 3px;
   right: 3px;
-  border-radius: 6px;
-  background: rgba(46, 224, 106, 0.22);
-  border: 1px solid rgba(46, 224, 106, 0.45);
+  border-radius: 8px;
+  background: linear-gradient(rgba(46, 224, 106, 0.32), rgba(46, 224, 106, 0.16));
+  border: 1px solid rgba(46, 224, 106, 0.6);
+  box-shadow: 0 0 10px -4px var(--status-green);
+  touch-action: none;
+  cursor: grab;
+}
+.wg-eat em,
+.wg-sport em {
+  position: absolute;
+  left: 3px;
+  top: 2px;
+  font-size: 8px;
+  font-style: normal;
+  font-family: ui-monospace, monospace;
+  color: var(--text);
+  opacity: 0.85;
+}
+.wg-eat em.end { top: auto; bottom: 2px; }
+.wg-eat.dragging,
+.wg-sport.dragging {
+  cursor: grabbing;
+  filter: brightness(1.35);
+  z-index: 5;
 }
 .wg-sport {
   position: absolute;
-  left: 5px;
-  right: 5px;
-  border-radius: 5px;
-  background: rgba(255, 160, 46, 0.3);
-  border: 1px solid rgba(255, 160, 46, 0.65);
-  color: var(--neon-orange);
-  font-size: 9px;
+  left: 4px;
+  right: 4px;
+  border-radius: 7px;
+  background: linear-gradient(rgba(255, 160, 46, 0.45), rgba(255, 160, 46, 0.25));
+  border: 1px solid rgba(255, 160, 46, 0.8);
+  box-shadow: 0 0 10px -4px var(--neon-orange);
+  color: #ffe1bd;
+  font-size: 10px;
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: none;
+  cursor: grab;
+  z-index: 2;
 }
+.wg-sport em { top: auto; bottom: 1px; left: auto; right: 3px; font-weight: 400; }
 .wg-advise {
   position: absolute;
   left: 0;
   right: 0;
   border-top: 2px dashed var(--neon-magenta);
   filter: drop-shadow(0 0 4px var(--neon-magenta));
+  z-index: 3;
+  pointer-events: none;
 }
 .wg-advise em {
   position: absolute;
   right: 1px;
-  top: -13px;
+  top: 1px;
   font-size: 8px;
   font-style: normal;
   font-family: ui-monospace, monospace;
-  color: var(--neon-magenta);
+  font-weight: 700;
+  color: #ffb8f2;
+  background: rgba(20, 10, 22, 0.85);
+  border-radius: 4px;
+  padding: 0 3px;
 }
 .wg-now {
   position: absolute;

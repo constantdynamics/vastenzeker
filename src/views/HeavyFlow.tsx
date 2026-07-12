@@ -3,7 +3,7 @@ import { useAppData } from '../App'
 import { computeStatus, formatClock } from '../lib/time'
 import { pickTip } from '../lib/tips'
 import { CATEGORY_COLORS, CATEGORY_LABELS } from '../lib/types'
-import type { Tip } from '../lib/types'
+import type { Tip, TipCategory } from '../lib/types'
 
 /**
  * De "ik heb het zwaar"-flow: swipebare kaarten met één krachtig inzicht
@@ -26,23 +26,39 @@ export default function HeavyFlow({ onClose }: { onClose: () => void }) {
   const [card, setCard] = useState<Tip | null>(null)
   const [seen, setSeen] = useState<number[]>([])
   const [stopScreen, setStopScreen] = useState(false)
+  const [cat, setCat] = useState<'alle' | TipCategory>('alle')
   const started = useRef(false)
+
+  // Categorieën waarin zwaar-kaarten bestaan, voor het keuzemenu bovenin
+  const heavyCats = useMemo(
+    () => [...new Set(tips.filter((t) => t.heavy).map((t) => t.category))],
+    [tips],
+  )
 
   useEffect(() => {
     if (started.current || tips.length === 0) return
     started.current = true
-    advance([])
+    advance([], 'alle')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tips])
 
-  function advance(exclude: number[]) {
+  function advance(exclude: number[], forCat: 'alle' | TipCategory = cat) {
+    const pool = forCat === 'alle' ? tips : tips.filter((t) => t.category === forCat)
     const s = computeStatus(new Date(), profile, schedule, activeFast?.started_at ?? null)
-    const t = pickTip(tips, reads, { phase: s.phase, sportDay: s.sport !== null, heavy: true }, exclude)
+    const ctx = { phase: s.phase, sportDay: s.sport !== null, heavy: true }
+    // kleine categorie: als alles al langskwam, sluit alleen de huidige kaart uit
+    const t =
+      pickTip(pool, reads, ctx, exclude) ?? pickTip(pool, reads, ctx, card ? [card.id] : [])
     if (t) {
       setCard(t)
       setSeen((prev) => [...prev, t.id])
       markRead(t.id, true)
     }
+  }
+
+  function chooseCat(next: 'alle' | TipCategory) {
+    setCat(next)
+    advance([], next)
   }
 
   // swipe-afhandeling
@@ -109,6 +125,29 @@ export default function HeavyFlow({ onClose }: { onClose: () => void }) {
           {status.kind === 'fasting' ? formatClock(status.msToChange) : '00:00:00'}
         </div>
         <span className="faint">Dit is tijdelijk. De golf zakt vanzelf.</span>
+      </div>
+
+      <div className="heavy-cats" role="tablist" aria-label="Kies een categorie">
+        <button
+          className={`chip ${cat === 'alle' ? 'on' : ''}`}
+          onClick={() => chooseCat('alle')}
+          role="tab"
+          aria-selected={cat === 'alle'}
+        >
+          alles
+        </button>
+        {heavyCats.map((c) => (
+          <button
+            key={c}
+            className={`chip ${cat === c ? 'on' : ''}`}
+            style={{ ['--chip-color' as string]: CATEGORY_COLORS[c] }}
+            onClick={() => chooseCat(c)}
+            role="tab"
+            aria-selected={cat === c}
+          >
+            {CATEGORY_LABELS[c]}
+          </button>
+        ))}
       </div>
 
       <div

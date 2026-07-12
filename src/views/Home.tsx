@@ -54,34 +54,65 @@ export default function Home() {
     })
   }, [activeFast, status.kind, profile, schedule, patchFast])
 
+  // Er staat altijd één tip op dit scherm. Hij ververst elk uur, maar alleen
+  // als je hem ook echt gezien hebt: binnen het uur terugkomen (of van tabblad
+  // wisselen) toont dezelfde tip, en er rouleert niets terwijl de app dicht
+  // is of op de achtergrond staat.
+  const TIP_STATE_KEY = 'vz_tip_state_v1'
+  const TIP_TTL = 60 * 60 * 1000
   const [tip, setTip] = useState<Tip | null>(null)
+  const [tipShownAt, setTipShownAt] = useState(0)
   const [shownIds, setShownIds] = useState<number[]>([])
   const pickedOnce = useRef(false)
+
+  function pickFresh(exclude: number[]) {
+    const s = computeStatus(new Date(), profile, schedule, activeFast?.started_at ?? null)
+    const t = pickTip(tips, reads, { phase: s.phase, sportDay: s.sport !== null, heavy: false }, exclude)
+    if (t) {
+      setTip(t)
+      setTipShownAt(Date.now())
+      setShownIds((prev) => [...prev.slice(-20), t.id])
+      markRead(t.id, false)
+      localStorage.setItem(TIP_STATE_KEY, JSON.stringify({ tipId: t.id, shownAt: Date.now() }))
+    }
+  }
 
   useEffect(() => {
     if (pickedOnce.current || tips.length === 0) return
     pickedOnce.current = true
-    const s = computeStatus(new Date(), profile, schedule, activeFast?.started_at ?? null)
-    const t = pickTip(tips, reads, { phase: s.phase, sportDay: s.sport !== null, heavy: false })
-    if (t) {
-      setTip(t)
-      setShownIds([t.id])
-      markRead(t.id, false)
+    try {
+      const stored = JSON.parse(localStorage.getItem(TIP_STATE_KEY) ?? 'null') as {
+        tipId: number
+        shownAt: number
+      } | null
+      if (stored && Date.now() - stored.shownAt < TIP_TTL) {
+        const t = tips.find((x) => x.id === stored.tipId)
+        if (t) {
+          // dezelfde tip als eerder dit uur; niet opnieuw als gelezen tellen
+          setTip(t)
+          setTipShownAt(stored.shownAt)
+          setShownIds([t.id])
+          return
+        }
+      }
+    } catch {
+      // kapotte cache: gewoon vers kiezen
     }
-  }, [tips, reads, profile, schedule, activeFast, markRead])
+    pickFresh([])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tips])
+
+  // Uurlijkse verversing zolang het scherm open en zichtbaar is
+  useEffect(() => {
+    if (!tip || tipShownAt === 0) return
+    if (Date.now() - tipShownAt >= TIP_TTL && document.visibilityState === 'visible') {
+      pickFresh(shownIds)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [now])
 
   function nextTip() {
-    const t = pickTip(
-      tips,
-      reads,
-      { phase: status.phase, sportDay: status.sport !== null, heavy: false },
-      shownIds,
-    )
-    if (t) {
-      setTip(t)
-      setShownIds((prev) => [...prev.slice(-20), t.id])
-      markRead(t.id, false)
-    }
+    pickFresh(shownIds)
   }
 
   const [heavyOpen, setHeavyOpen] = useState(false)

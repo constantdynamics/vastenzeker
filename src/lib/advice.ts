@@ -240,6 +240,46 @@ export function sportAdvice(
   return out
 }
 
+export interface SportFix {
+  label: string
+  patch: Partial<ScheduleDay>
+}
+
+/**
+ * Eén-tik-oplossingen bij een botsing tussen sport en vasten op een dag:
+ * training verschuiven, het venster van die dag meeschuiven, of de dag
+ * vrijgeven. De app past niets stilzwijgend aan — de gebruiker kiest.
+ */
+export function sportFixes(day: ScheduleDay, profile: Profile): SportFix[] {
+  if (!day.fasting || !day.sport_type || !day.sport_time) return []
+  const heavy = day.sport_type === 'strength' || day.sport_type === 'intense'
+  if (!heavy) return []
+
+  const open = parseTime(day.window_start ?? profile.window_start)
+  let close = parseTime(day.window_end ?? profile.window_end)
+  if (close <= open) close += 1440
+  const len = close - open
+  const t = parseTime(day.sport_time)
+  const fixes: SportFix[] = []
+
+  const shiftWindow = (newOpen: number): SportFix => ({
+    label: `Verschuif venster naar ${fmtMin(newOpen)}–${fmtMin((newOpen + len) % 1440)}`,
+    patch: { window_start: fmtMin(newOpen), window_end: fmtMin((newOpen + len) % 1440) },
+  })
+
+  if (t < open && open - t > 90) {
+    // zwaar trainen diep in de vast
+    fixes.push({ label: `Train om ${fmtMin(open - 60)}`, patch: { sport_time: fmtMin(open - 60) } })
+    fixes.push(shiftWindow(t + 60))
+    fixes.push({ label: 'Maak deze dag vrij', patch: { fasting: false } })
+  } else if (t >= close) {
+    // trainen na venstersluiting: schuif het venster zo dat je erna nog kunt eten
+    fixes.push(shiftWindow(Math.max(open, t + 90 - len)))
+    fixes.push({ label: `Train om ${fmtMin(open - 60)}`, patch: { sport_time: fmtMin(open - 60) } })
+  }
+  return fixes
+}
+
 /**
  * Ruiladvies: als een zware sportdag botst met vasten en er is een vrije
  * (weekend)dag, stel dan voor om te ruilen. Vasten in het weekend is prima;
