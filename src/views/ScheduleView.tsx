@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useAppData } from '../App'
 import { scheduleAdvice, sportAdvice, swapAdvice, windowAdvice } from '../lib/advice'
-import { protocolName, windowLengthHours } from '../lib/time'
-import { SPORT_LABELS, WEEKDAY_LABELS } from '../lib/types'
+import { protocolName, weekdayOf, windowLengthHours } from '../lib/time'
+import WeekGrid from '../components/WeekGrid'
+import { SPORT_LABELS, WEEKDAY_FULL, WEEKDAY_LABELS } from '../lib/types'
 import type { ScheduleDay, SportType } from '../lib/types'
 
 const PRESETS: { name: string; start: string; end: string }[] = [
@@ -16,6 +17,7 @@ const PRESETS: { name: string; start: string; end: string }[] = [
 export default function ScheduleView() {
   const { profile, schedule, updateProfile, saveScheduleDay } = useAppData()
   const [saving, setSaving] = useState(false)
+  const [selectedDay, setSelectedDay] = useState(() => weekdayOf(new Date()))
 
   const start = profile.window_start.slice(0, 5)
   const end = profile.window_end.slice(0, 5)
@@ -108,14 +110,36 @@ export default function ScheduleView() {
 
       <h2>Weekschema</h2>
       <p className="muted small">
-        Vink aan op welke dagen je vast. Per dag kun je het venster en je sport aanpassen.
+        Groen is je eetvenster, oranje je sport, de magenta lijn het geadviseerde startmoment van
+        je vast. Tik op een dag om hem aan te passen — het advies rekent direct mee.
       </p>
 
-      <div className="stack">
-        {days.map((day) => (
-          <DayEditor key={day.weekday} day={day} defaults={{ start, end }} onPatch={patchDay} />
-        ))}
+      <WeekGrid days={days} profile={profile} selected={selectedDay} onSelect={setSelectedDay} />
+
+      <div className="wg-legend">
+        <span><i style={{ background: 'rgba(46,224,106,0.4)' }} /> eetvenster</span>
+        <span><i style={{ background: 'rgba(255,160,46,0.5)' }} /> sport</span>
+        <span><i style={{ borderTop: '2px dashed var(--neon-magenta)', height: 0, width: 12 }} /> start vasten</span>
+        <span><i style={{ borderTop: '2px solid var(--neon-cyan)', height: 0, width: 12 }} /> nu</span>
       </div>
+
+      <h3 style={{ fontSize: 16 }}>{WEEKDAY_FULL[selectedDay]}</h3>
+      <DayEditor
+        key={selectedDay}
+        day={days[selectedDay]}
+        defaults={{ start, end }}
+        onPatch={patchDay}
+        defaultExpanded
+      />
+      {days[selectedDay].sport_type && (
+        <div className="stack" style={{ gap: 8 }}>
+          {sportAdvice(days[selectedDay].sport_type!, days[selectedDay], profile).map((a, i) => (
+            <div className={`advice ${a.level}`} key={i}>
+              <span>{a.text}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {schedAdvice.map((a, i) => (
         <div className={`advice ${a.level}`} key={i}>
@@ -123,7 +147,7 @@ export default function ScheduleView() {
         </div>
       ))}
 
-      <SportAdviceBlock days={days} />
+      <SportAdviceBlock days={days} exclude={selectedDay} />
 
       <div className="card stack">
         <h3 style={{ fontSize: 16 }}>Hoe lang hou je dit vol?</h3>
@@ -141,12 +165,14 @@ function DayEditor({
   day,
   defaults,
   onPatch,
+  defaultExpanded = false,
 }: {
   day: ScheduleDay
   defaults: { start: string; end: string }
   onPatch: (day: ScheduleDay, patch: Partial<ScheduleDay>) => void
+  defaultExpanded?: boolean
 }) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(defaultExpanded)
   const sportOrder: (SportType | null)[] = [null, 'strength', 'endurance', 'intense', 'easy']
 
   return (
@@ -219,11 +245,11 @@ function DayEditor({
   )
 }
 
-function SportAdviceBlock({ days }: { days: ScheduleDay[] }) {
+function SportAdviceBlock({ days, exclude }: { days: ScheduleDay[]; exclude?: number }) {
   const { profile } = useAppData()
-  const sportDays = days.filter((d) => d.sport_type)
-  if (sportDays.length === 0) return null
+  const sportDays = days.filter((d) => d.sport_type && d.weekday !== exclude)
   const swaps = swapAdvice(days, profile)
+  if (sportDays.length === 0 && swaps.length === 0) return null
   return (
     <div className="stack">
       <h2>Sport en vasten</h2>
