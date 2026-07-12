@@ -348,9 +348,17 @@ input[type='time'] {
   padding: 10px 4px 8px;
   font-size: 11px;
   font-weight: 700;
-  color: var(--text-faint);
+  color: var(--nav-color, var(--text-faint));
+  opacity: 0.55;
+  transition: opacity 0.12s ease;
 }
-.nav button.on { color: var(--neon-cyan); text-shadow: 0 0 12px var(--neon-cyan); }
+.nav button.on {
+  opacity: 1;
+  text-shadow: 0 0 12px var(--nav-color);
+}
+.nav button.on svg {
+  filter: drop-shadow(0 0 6px var(--nav-color));
+}
 .nav svg { width: 22px; height: 22px; }
 
 /* ---------- zwaar-flow ---------- */

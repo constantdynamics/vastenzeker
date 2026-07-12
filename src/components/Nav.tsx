@@ -1,9 +1,10 @@
 export type Tab = 'home' | 'schema' | 'hartjes' | 'meten' | 'meer'
 
-const items: { key: Tab; label: string; icon: JSX.Element }[] = [
+const items: { key: Tab; label: string; color: string; icon: JSX.Element }[] = [
   {
     key: 'home',
     label: 'Nu',
+    color: 'var(--neon-cyan)',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <circle cx="12" cy="12" r="9" />
@@ -14,6 +15,7 @@ const items: { key: Tab; label: string; icon: JSX.Element }[] = [
   {
     key: 'schema',
     label: 'Schema',
+    color: 'var(--neon-purple)',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <rect x="3" y="5" width="18" height="16" rx="2" />
@@ -24,6 +26,7 @@ const items: { key: Tab; label: string; icon: JSX.Element }[] = [
   {
     key: 'hartjes',
     label: 'Hartjes',
+    color: 'var(--neon-magenta)',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M12 21C6 16 3 12.5 3 9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 3.5-3 7-9 12z" />
@@ -33,6 +36,7 @@ const items: { key: Tab; label: string; icon: JSX.Element }[] = [
   {
     key: 'meten',
     label: 'Meten',
+    color: 'var(--neon-lime)',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M3 17l5-6 4 3 6-8" />
@@ -43,6 +47,7 @@ const items: { key: Tab; label: string; icon: JSX.Element }[] = [
   {
     key: 'meer',
     label: 'Meer',
+    color: 'var(--neon-orange)',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <circle cx="12" cy="12" r="3" />
@@ -59,6 +64,7 @@ export default function Nav({ tab, onChange }: { tab: Tab; onChange: (t: Tab) =>
         <button
           key={it.key}
           className={tab === it.key ? 'on' : ''}
+          style={{ ['--nav-color' as string]: it.color }}
           onClick={() => onChange(it.key)}
           aria-current={tab === it.key ? 'page' : undefined}
         >

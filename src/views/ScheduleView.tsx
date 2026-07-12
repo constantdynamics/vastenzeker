@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useAppData } from '../App'
-import { scheduleAdvice, sportAdvice, windowAdvice } from '../lib/advice'
+import { scheduleAdvice, sportAdvice, swapAdvice, windowAdvice } from '../lib/advice'
 import { protocolName, windowLengthHours } from '../lib/time'
 import { SPORT_LABELS, WEEKDAY_LABELS } from '../lib/types'
 import type { ScheduleDay, SportType } from '../lib/types'
@@ -31,6 +31,7 @@ export default function ScheduleView() {
           window_start: null,
           window_end: null,
           sport_type: null,
+          sport_time: null,
         }
       )
     })
@@ -161,7 +162,9 @@ function DayEditor({
         {day.fasting
           ? `${(day.window_start ?? defaults.start).slice(0, 5)}–${(day.window_end ?? defaults.end).slice(0, 5)}`
           : 'vrij'}
-        {day.sport_type ? ` · ${SPORT_LABELS[day.sport_type]}` : ''}
+        {day.sport_type
+          ? ` · ${SPORT_LABELS[day.sport_type]}${day.sport_time ? ` om ${day.sport_time.slice(0, 5)}` : ''}`
+          : ''}
       </span>
       <button className="btn btn-ghost small" onClick={() => setExpanded(!expanded)}>
         {expanded ? '▲' : '▼'}
@@ -192,13 +195,24 @@ function DayEditor({
                   key={s ?? 'geen'}
                   className={`chip ${day.sport_type === s ? 'on' : ''}`}
                   style={{ ['--chip-color' as string]: 'var(--neon-orange)' }}
-                  onClick={() => onPatch(day, { sport_type: s })}
+                  onClick={() => onPatch(day, { sport_type: s, ...(s ? {} : { sport_time: null }) })}
                 >
                   {s ? SPORT_LABELS[s] : 'geen'}
                 </button>
               ))}
             </div>
           </div>
+          {day.sport_type && (
+            <div className="field">
+              <label>Hoe laat train je (ongeveer)?</label>
+              <input
+                type="time"
+                value={(day.sport_time ?? '').slice(0, 5)}
+                onChange={(e) => onPatch(day, { sport_time: e.target.value || null })}
+                aria-label="Traintijd op deze dag"
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -209,6 +223,7 @@ function SportAdviceBlock({ days }: { days: ScheduleDay[] }) {
   const { profile } = useAppData()
   const sportDays = days.filter((d) => d.sport_type)
   if (sportDays.length === 0) return null
+  const swaps = swapAdvice(days, profile)
   return (
     <div className="stack">
       <h2>Sport en vasten</h2>
@@ -216,12 +231,18 @@ function SportAdviceBlock({ days }: { days: ScheduleDay[] }) {
         <div className="card stack" key={d.weekday} style={{ gap: 8 }}>
           <strong className="small" style={{ textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             {WEEKDAY_LABELS[d.weekday]} · {SPORT_LABELS[d.sport_type!]}
+            {d.sport_time ? ` om ${d.sport_time.slice(0, 5)}` : ''}
           </strong>
           {sportAdvice(d.sport_type!, d, profile).map((a, i) => (
             <div className={`advice ${a.level}`} key={i}>
               <span>{a.text}</span>
             </div>
           ))}
+        </div>
+      ))}
+      {swaps.map((a, i) => (
+        <div className={`advice ${a.level}`} key={`swap-${i}`}>
+          <span>{a.text}</span>
         </div>
       ))}
     </div>

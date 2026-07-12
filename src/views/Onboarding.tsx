@@ -24,6 +24,7 @@ export default function Onboarding() {
   const [family, setFamily] = useState<Family>('young_kids')
   const [work, setWork] = useState<WorkRhythm>('office')
   const [sportDays, setSportDays] = useState<Partial<Record<number, SportType>>>({})
+  const [sportTime, setSportTime] = useState('18:00')
   const [proposal, setProposal] = useState<ScheduleProposal | null>(null)
 
   const steps = 5
@@ -72,6 +73,7 @@ export default function Onboarding() {
         window_start: null,
         window_end: null,
         sport_type: sportDays[d] ?? null,
+        sport_time: sportDays[d] ? sportTime || null : null,
       })
     }
     setBusy(false)
@@ -232,6 +234,18 @@ export default function Onboarding() {
               </button>
             ))}
           </div>
+          {Object.keys(sportDays).length > 0 && (
+            <div className="field">
+              <label htmlFor="sport-time">Hoe laat train je meestal?</label>
+              <input
+                id="sport-time"
+                type="time"
+                value={sportTime}
+                onChange={(e) => setSportTime(e.target.value)}
+              />
+              <p className="faint">Per dag aanpassen kan later onder ‘Schema’.</p>
+            </div>
+          )}
           <button
             className="btn btn-primary btn-wide"
             onClick={() => {

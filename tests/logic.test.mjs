@@ -1,6 +1,6 @@
 // Tests voor streak- en advieslogica.
 import { computeStreak } from './.bundles/streak-bundle.mjs'
-import { windowAdvice, scheduleAdvice, sportAdvice, wellbeingSignal, proposeSchedule } from './.bundles/advice-bundle.mjs'
+import { windowAdvice, scheduleAdvice, sportAdvice, swapAdvice, wellbeingSignal, proposeSchedule } from './.bundles/advice-bundle.mjs'
 
 let failures = 0
 function check(name, cond, detail = '') {
@@ -50,11 +50,35 @@ const beginner = { ...profile, experience: 'none' }
 check('beginner streng = caution', scheduleAdvice(omadWeek, beginner).some((a) => a.level === 'caution'))
 check('redelijk schema = info', scheduleAdvice(sundayFree, profile).some((a) => a.level === 'info'))
 
-// ---- sportAdvice ----
-const longFastDay = { weekday: 0, fasting: true, window_start: '18:00', window_end: '22:00', sport_type: 'strength' }
-check('kracht in lange vast = warning', sportAdvice('strength', longFastDay, profile).some((a) => a.level === 'warning'))
+// ---- sportAdvice (tijdgebonden) ----
+const deepDay = { weekday: 0, fasting: true, window_start: '12:00', window_end: '20:00', sport_type: 'strength', sport_time: '07:00' }
+const deep = sportAdvice('strength', deepDay, profile)
+check('kracht diep in vast = warning', deep.some((a) => a.level === 'warning'))
+check('warning noemt concrete opties', deep.some((a) => a.text.includes('11:00') && a.text.includes('08:00')))
+
+const sweetDay = { ...deepDay, sport_time: '11:00' }
+const sweet = sportAdvice('strength', sweetDay, profile)
+check('sweet spot = geen warning', !sweet.some((a) => a.level === 'warning'))
+check('sweet spot benoemd', sweet.some((a) => a.text.includes('sweet spot')))
+
+const lateDay = { ...deepDay, sport_time: '21:30' }
+check('trainen na venster = caution', sportAdvice('strength', lateDay, profile).some((a) => a.level === 'caution' && a.text.includes('venster')))
+
 check('rustig = geen warning', !sportAdvice('easy', undefined, profile).some((a) => a.level === 'warning'))
 check('advies altijd met onderbouwing', sportAdvice('intense', undefined, profile).every((a) => a.text.length > 30))
+check('hersteladvies noemt isotone drank', sportAdvice('strength', sweetDay, profile).some((a) => a.text.includes('Isotone')))
+check('geen traintijd = hint', sportAdvice('strength', { ...deepDay, sport_time: null }, profile).some((a) => a.text.includes('traintijd')))
+
+// ---- swapAdvice ----
+const weekSwap = [
+  deepDay,
+  ...[1, 2, 3, 4].map((weekday) => ({ weekday, fasting: true, window_start: null, window_end: null, sport_type: null, sport_time: null })),
+  { weekday: 5, fasting: false, window_start: null, window_end: null, sport_type: null, sport_time: null },
+  { weekday: 6, fasting: false, window_start: null, window_end: null, sport_type: null, sport_time: null },
+]
+check('ruiladvies bij zware dag + vrij weekend', swapAdvice(weekSwap, profile).some((a) => a.text.includes('Ruil')))
+const noFree = weekSwap.map((d) => ({ ...d, fasting: true }))
+check('geen ruiladvies zonder vrije dag', swapAdvice(noFree, profile).length === 0)
 
 // ---- wellbeing ----
 const heavyFasts = Array.from({ length: 12 }, (_, i) => ({ day: dkey(-i - 1), status: 'completed', heavy_presses: 3 }))

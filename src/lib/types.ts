@@ -45,6 +45,7 @@ export interface ScheduleDay {
   window_start: string | null
   window_end: string | null
   sport_type: SportType | null
+  sport_time: string | null // 'HH:MM:SS', hoe laat je ongeveer traint
 }
 
 export interface Tip {

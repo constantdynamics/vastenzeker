@@ -3433,5 +3433,138 @@
     "sport_day": null,
     "heavy": true,
     "action": "Dek alvast de tafel voor de eerste maaltijd."
+  },
+  {
+    "slug": "sport-c-01",
+    "category": "sport",
+    "title": "Na je training: eiwit, geen paniek over timing",
+    "body": "De belangrijkste vraag na een training is niet wanneer je eet, maar wat. Mik op 20 tot 40 gram eiwit in je eerstvolgende maaltijd: kwark, eieren, kip, vis of een shake. Valt je training vlak voor je venster, dan is je eerste maaltijd meteen je herstelmaaltijd. Dat is precies waarom trainen vlak voor de vensteropening zo goed werkt.",
+    "phases": [
+      "eat_open"
+    ],
+    "sport_day": true,
+    "heavy": false,
+    "action": null,
+    "evidence": null
+  },
+  {
+    "slug": "sport-c-02",
+    "category": "sport",
+    "title": "Isotone drank tijdens je vast: nee",
+    "body": "Een isotone sportdrank zit vol suiker — dat is het hele punt van isotoon. Drink je hem tijdens je vast, dan stijgt je insuline en is je vast gebroken. Wil je tijdens het sporten in je vastenuren iets anders dan water, kies dan water met een snufje zout of een elektrolytenpoeder zonder suiker en zonder calorieën. Check het etiket: nul koolhydraten is de eis.",
+    "phases": [
+      "any"
+    ],
+    "sport_day": true,
+    "heavy": false,
+    "action": null,
+    "evidence": null
+  },
+  {
+    "slug": "sport-c-03",
+    "category": "sport",
+    "title": "Isotone drank in je venster: mag, zelden nodig",
+    "body": "Na een lange of zware sessie — ruim een uur flink zweten — is een isotone drank in je eetvenster prima: hij vult vocht, zout en suikers snel aan. Maar voor de meeste trainingen van drie kwartier in de sportschool is hij overbodig. Een gewone maaltijd met water erbij doet hetzelfde, zonder de extra suikercalorieën. Bewaar isotoon voor de echt lange dagen.",
+    "phases": [
+      "eat_open",
+      "eat_mid"
+    ],
+    "sport_day": true,
+    "heavy": false,
+    "action": null,
+    "evidence": null
+  },
+  {
+    "slug": "sport-c-04",
+    "category": "sport",
+    "title": "Je eerste maaltijd na het sporten",
+    "body": "Simpel stramien voor de maaltijd na je training: een flinke portie eiwit, koolhydraten om je voorraad aan te vullen, en ruim drinken. Denk aan kip met rijst en groente, een omelet met brood, of kwark met havermout en fruit. Geen speciale sportproducten nodig. Gewoon eten doet negentig procent van het werk, ook als je even in de vast hebt getraind.",
+    "phases": [
+      "eat_open"
+    ],
+    "sport_day": true,
+    "heavy": false,
+    "action": null,
+    "evidence": null
+  },
+  {
+    "slug": "sport-c-05",
+    "category": "sport",
+    "title": "Zweet is water plus zout",
+    "body": "Wat je met zweten verliest is vooral vocht en natrium. Na een training in je vastenuren vul je dat aan met water en een snufje zout of een kop bouillon — dat breekt je vast niet en scheelt hoofdpijn en futloosheid. De rest van je mineralen komt vanzelf binnen zodra je venster opent en je normaal eet.",
+    "phases": [
+      "any"
+    ],
+    "sport_day": true,
+    "heavy": false,
+    "action": null,
+    "evidence": null
+  },
+  {
+    "slug": "sport-c-06",
+    "category": "sport",
+    "title": "Het anabole venster is ruimer dan je denkt",
+    "body": "Het idee dat je binnen dertig minuten na krachttraining eiwit móét nemen, is achterhaald. Je spieren blijven vele uren gevoelig voor opbouw. Train je nuchter en eet je pas twee of drie uur later, dan is dat voor spierbehoud geen ramp — zolang je over de hele dag genoeg eiwit binnenkrijgt. Veel langer wachten dan een paar uur na zwaar trainen is wel onhandig; plan daarom je training richting je venster.",
+    "phases": [
+      "any"
+    ],
+    "sport_day": true,
+    "heavy": false,
+    "action": null,
+    "evidence": "onderzoek wijst op een venster van meerdere uren, niet minuten"
+  },
+  {
+    "slug": "sport-c-07",
+    "category": "sport",
+    "title": "Dorst na de training: eerst water, dan eten",
+    "body": "Direct na het sporten voelt honger en dorst als één grote schreeuw. Begin met een groot glas water en wacht vijf minuten. Vaak blijkt de helft van de honger gewoon dorst te zijn. Daarna rustig eten in plaats van schrokken — je hebt net getraind, de winst weggooien met een eetbui is zonde.",
+    "phases": [
+      "eat_open"
+    ],
+    "sport_day": true,
+    "heavy": false,
+    "action": null,
+    "evidence": null
+  },
+  {
+    "slug": "sport-c-08",
+    "category": "sport",
+    "title": "Melk of een shake: snel en genoeg",
+    "body": "Geen tijd voor een echte maaltijd na je training? Een halve liter melk of een eiwitshake met een banaan is een prima tussenoplossing: eiwit, vocht en koolhydraten in één klap. Niet chiquer dan nodig. De volwaardige maaltijd komt later in je venster wel.",
+    "phases": [
+      "eat_open",
+      "eat_mid"
+    ],
+    "sport_day": true,
+    "heavy": false,
+    "action": null,
+    "evidence": null
+  },
+  {
+    "slug": "sport-c-09",
+    "category": "sport",
+    "title": "Suikervrije sportdrank: lees het etiket",
+    "body": "Er bestaan sportdranken en elektrolytentabletten zonder suiker. Die kun je in je vastenuren gebruiken; ze leveren zout en mineralen zonder calorieën. Let op de kleine lettertjes: sommige \"zero\"-varianten bevatten toch een paar gram koolhydraten per fles. Nul gram is de norm als je je vast intact wilt houden. Zoetstoffen zijn een grijs gebied — pragmatisch gezien prima, puristisch gezien vermijd je ze.",
+    "phases": [
+      "any"
+    ],
+    "sport_day": true,
+    "heavy": false,
+    "action": null,
+    "evidence": null
+  },
+  {
+    "slug": "sport-c-10",
+    "category": "sport",
+    "title": "Herstel gebeurt in je venster, niet in de kleedkamer",
+    "body": "Spieren herstellen niet in het uur na de training maar in de 24 tot 48 uur erna — en dat herstel drijft op slaap en op wat je in je venster eet. Eén gerichte herstelmaaltijd is mooi, maar drie dagen genoeg eiwit en op tijd naar bed doen meer voor je progressie dan welk poeder dan ook. Zo werkt vasten en sporten prima samen: je eet minder vaak, niet minder goed.",
+    "phases": [
+      "eat_mid",
+      "eat_close"
+    ],
+    "sport_day": true,
+    "heavy": false,
+    "action": null,
+    "evidence": null
   }
 ]
