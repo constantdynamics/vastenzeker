@@ -1602,6 +1602,48 @@ var SEED_MEALS = [
     ]
   ),
   meal(
+    "x39",
+    "Kalkoen-omelet met spinazie",
+    "Omelet van drie eieren met kalkoenfilet, spinazie en tomaat.",
+    DI,
+    "warm",
+    "home_only",
+    "slow",
+    false,
+    15,
+    "egg",
+    "49 g eiwit voor ~490 kcal \u2014 het lichte eierdiner.",
+    `Drie eieren plus kalkoenfilet: 49 gram eiwit voor zo'n 490 kcal. Lichter dan de eierschotel, dus handig op dagen waarop lunch en snack al zwaar waren \u2014 je haalt je eiwit zonder je calorieband te raken.`,
+    [
+      ["ei", 165, "primary"],
+      ["kalkoenfilet", 100, "primary"],
+      ["spinazie", 150, "supporting"],
+      ["tomaat", 100, "supporting"],
+      ["olijfolie", 5, "optional"]
+    ]
+  ),
+  meal(
+    "x44",
+    "Linzen-dahl met edamame",
+    "Dahl van linzen en edamame in lichte kokosmelk, met rijst.",
+    DI,
+    "warm",
+    "home_only",
+    "slow",
+    false,
+    25,
+    "veg",
+    "41 g plantaardig eiwit \u2014 het derde veggie-diner.",
+    `Linzen en edamame samen: 41 gram plantaardig eiwit plus 14 gram vezels. Minder eiwit dan vlees of vis, dus plan hem op een dag waarop je zuivelmomenten het zware werk al doen \u2014 de vezels maken hem wel het meest verzadigende diner in de lijst.`,
+    [
+      ["linzen", 250, "primary"],
+      ["edamame", 150, "primary"],
+      ["kokosmelk-light", 150, "supporting"],
+      ["rijst", 150, "supporting"],
+      ["currypasta", 25, "optional"]
+    ]
+  ),
+  meal(
     "x40",
     "Boterham met h\xFCttenk\xE4se en banaan",
     "Twee sneetjes volkoren met h\xFCttenk\xE4se en plakjes banaan.",

@@ -12,7 +12,9 @@ Gebouwd voor de drukke vader in een jong gezin: nuchter, praktisch, geen wellnes
 - **250+ tips** met contextafhankelijke rotatie: de tip past bij de fase van je vast, sportdagen en zware momenten. Geen herhaling tot de voorraad op is.
 - **Hartjes** — favoriete tips bewaren, filteren op categorie, en weer verwijderen.
 - **"Ik heb het zwaar"-knop** — swipe-flow met kaarten: wat er nú in je lijf gebeurt, altijd de resterende tijd in beeld, en per kaart één directe actie. Stoppen kan altijd, zonder schuldgevoel.
-- **Sportdagen** — per weekdag type sport instellen; de app adviseert nuchter of gevoed trainen en waarschuwt bij onverstandige combinaties, altijd met onderbouwing.
+- **Sportdagen** — per weekdag type sport en traintijd (van–tot) instellen; de app adviseert nuchter of gevoed trainen en waarschuwt bij onverstandige combinaties, altijd met onderbouwing.
+- **Voedingsmodule ("Eten")** — dagplan met vier maaltijdslots (vasten breken, eiwitmoment, diner, venster sluiten), afgeleid uit dagtype en trainingstijden. Suggestie-engine met voorkeuren (♡ like, ★ superlike = gepind, ✕ dislike, op maaltijd- én ingrediëntniveau), explore/exploit-balans (altijd ≥ 20% nieuwe suggesties), macro-bewaking (eiwitvloer 170 g, calorieband, notenbudget, pindakaas-cap) en portie-flex. Per maaltijd 10 alternatieven en een i-knop die uitlegt waarom dít, nú, voor jouw doel. Verder: weekplanning, boodschappenlijst, ingrediëntenscherm met Open Food Facts-zoek en contextuele drankenlijsten.
+- **"Slechte nacht"-knop** — één tik markeert vandaag als hersteldag: geen vast (reeks blijft staan), eetvenster opent direct en het voedingsplan van de dag herrekent.
 - **Schema met intake** — korte intake (ervaring, doel, gezin, sport, werkritme) leidt tot een voorstel; per dag aanpasbaar; waarschuwingen bij te ambitieuze schema's.
 - **Bijhouden** — gewicht met grafiek, gevoel (energie/honger/focus in drie tikken), streaks met verstandige framing.
 - **Export** — al je data als JSON en CSV.
@@ -36,8 +38,16 @@ Gebouwd voor de drukke vader in een jong gezin: nuchter, praktisch, geen wellnes
 | `if_tips` | 250+ tips met categorie, fases, sportdag-flag en zwaar-flag |
 | `if_tip_reads` | rotatiestatus per gebruiker per context |
 | `if_tip_favorites` | hartjes |
+| `if_nutrition_profiles` | voedingsdoelen: eiwitdoel/-vloer, calorieband, gewicht |
+| `if_ingredients` | ingrediënten met macro's per 100 g, noten-/pindakaasmarkering en rationale |
+| `if_meals` | maaltijden met slots, eigenschappen en i-knop-teksten (macro's altijd berekend uit de compositie) |
+| `if_meal_ingredients` | compositie: grammen en rol (primary/supporting/optional) |
+| `if_meal_preferences` | ♡/★/✕ per (maaltijd × slot) |
+| `if_ingredient_preferences` | ♡/✕ per ingrediënt, werkt door op maaltijden |
+| `if_meal_log` | per dag/slot: voorgesteld, gegeten, geruild of geskipt |
+| `if_day_plans` | gegenereerde dagplannen |
 
-Migraties staan in `supabase/migrations/`, de tips-seed in `supabase/seed/`.
+Migraties staan in `supabase/migrations/`, de tips-seed in `supabase/seed/`. De voedings-seed wordt gegenereerd uit `src/lib/nutrition/seedData.ts` met `node scripts/gen-nutrition-seed.mjs`.
 
 ## Lokaal draaien
 

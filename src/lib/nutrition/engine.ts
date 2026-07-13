@@ -572,6 +572,62 @@ export function generateDayPlan(input: EngineInput): DayPlanResult {
     )
     work[victimIdx] = makeWork(victim.spec, alts[0].meal, false, false, 1)
   }
+
+  // 6c. Calorieband (harde regel 6, onderkant): haalt zelfs de maximale
+  // portieschaal kcalMin niet, wissel dan het calorie-armste slot voor het
+  // calorierijkste alternatief — zonder de caps te breken en zonder de
+  // eiwitvloer weer onhaalbaar te maken. De bovenkant heeft geen pas nodig:
+  // schaal 0.75 plus de sampler-penalty drukken overschot al weg.
+  const kcalAtMax = () => sumTotals(work.map((w) => slotMacrosAt(w, 1.25))).kcal
+  for (let swaps = 0; swaps < 4; swaps++) {
+    if (kcalAtMax() >= profile.kcalMin - EPS) break
+    let victimIdx = -1
+    let victimKcal = Infinity
+    work.forEach((w, i) => {
+      if (w.locked) return
+      const k = slotMacrosAt(w, 1.25).kcal
+      if (k < victimKcal) {
+        victimKcal = k
+        victimIdx = i
+      }
+    })
+    if (victimIdx < 0) break
+    const victim = work[victimIdx]
+    let restNut = 0
+    let restPb = 0
+    let restProteinMax = 0
+    work.forEach((w, i) => {
+      if (i === victimIdx) return
+      const t = slotMacrosAt(w, 1)
+      restNut += t.nutG
+      restPb += t.peanutButterG
+      restProteinMax += slotMacrosAt(w, 1.25).proteinG
+    })
+    const alts = repairAlts(victim.spec)
+      .map((m) => {
+        const sp = splitFor(m)
+        return {
+          meal: m,
+          kcal: sp.fixed.kcal + 1.25 * sp.scaling.kcal,
+          protein: sp.fixed.proteinG + 1.25 * sp.scaling.proteinG,
+          nutG: sp.fixed.nutG + sp.scaling.nutG,
+          peanutButterG: sp.fixed.peanutButterG + sp.scaling.peanutButterG,
+        }
+      })
+      .filter((a) => a.kcal > victimKcal + EPS) // anders geen vooruitgang
+      .filter(
+        (a) =>
+          restNut + a.nutG <= ctx.nutBudgetG + EPS &&
+          restPb + a.peanutButterG <= PEANUT_BUTTER_CAP_G + EPS &&
+          restProteinMax + a.protein >= profile.proteinFloorG - EPS,
+      )
+    if (alts.length === 0) break
+    alts.sort(
+      (a, b) =>
+        b.kcal - a.kcal || (a.meal.code < b.meal.code ? -1 : a.meal.code > b.meal.code ? 1 : 0),
+    )
+    work[victimIdx] = makeWork(victim.spec, alts[0].meal, false, false, 1)
+  }
   fit = fitPortions(work)
 
   // 7. Niet-blokkerende signalen: concreet wat en hoeveel.
