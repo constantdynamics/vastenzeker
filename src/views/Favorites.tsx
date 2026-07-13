@@ -52,14 +52,16 @@ export default function Favorites() {
           </p>
         </div>
       ) : (
-        favTips.map((t) => (
-          <TipCard
-            key={t.id}
-            tip={t}
-            isFavorite={favorites.has(t.id)}
-            onToggleFavorite={() => toggleFavorite(t.id)}
-          />
-        ))
+        <div className="fav-grid">
+          {favTips.map((t) => (
+            <TipCard
+              key={t.id}
+              tip={t}
+              isFavorite={favorites.has(t.id)}
+              onToggleFavorite={() => toggleFavorite(t.id)}
+            />
+          ))}
+        </div>
       )}
     </div>
   )

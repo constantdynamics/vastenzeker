@@ -1,21 +1,23 @@
 import { useMemo, useState } from 'react'
 import { useAppData } from '../App'
-import { scheduleAdvice, sportAdvice, windowAdvice } from '../lib/advice'
-import { protocolName, windowLengthHours } from '../lib/time'
-import { SPORT_LABELS, WEEKDAY_LABELS } from '../lib/types'
+import { scheduleAdvice, sportAdvice, sportFixes, swapAdvice, windowAdvice } from '../lib/advice'
+import { formatTime, parseTime, weekdayOf, windowLengthHours } from '../lib/time'
+import WeekGrid from '../components/WeekGrid'
+import { SPORT_LABELS, WEEKDAY_FULL, WEEKDAY_LABELS } from '../lib/types'
 import type { ScheduleDay, SportType } from '../lib/types'
 
-const PRESETS: { name: string; start: string; end: string }[] = [
-  { name: '14:10', start: '10:00', end: '20:00' },
-  { name: '16:8', start: '12:00', end: '20:00' },
-  { name: '18:6', start: '12:00', end: '18:00' },
-  { name: '20:4', start: '14:00', end: '18:00' },
-  { name: 'OMAD', start: '17:00', end: '18:00' },
+const PRESETS: { name: string; len: number; start: string; end: string }[] = [
+  { name: '14:10', len: 10, start: '10:00', end: '20:00' },
+  { name: '16:8', len: 8, start: '12:00', end: '20:00' },
+  { name: '18:6', len: 6, start: '12:00', end: '18:00' },
+  { name: '20:4', len: 4, start: '14:00', end: '18:00' },
+  { name: 'OMAD', len: 1, start: '17:00', end: '18:00' },
 ]
 
 export default function ScheduleView() {
   const { profile, schedule, updateProfile, saveScheduleDay } = useAppData()
   const [saving, setSaving] = useState(false)
+  const [selectedDay, setSelectedDay] = useState(() => weekdayOf(new Date()))
 
   const start = profile.window_start.slice(0, 5)
   const end = profile.window_end.slice(0, 5)
@@ -31,6 +33,7 @@ export default function ScheduleView() {
           window_start: null,
           window_end: null,
           sport_type: null,
+          sport_time: null,
         }
       )
     })
@@ -39,14 +42,34 @@ export default function ScheduleView() {
   const winAdvice = useMemo(() => windowAdvice(start, end), [start, end])
   const schedAdvice = useMemo(() => scheduleAdvice(days, profile), [days, profile])
 
-  async function setWindow(newStart: string, newEnd: string) {
+  // Het protocol is leidend: staat er een preset aan, dan houdt het venster
+  // zijn vaste lengte en schuift de andere kant automatisch mee.
+  const activePreset = PRESETS.find((p) => p.name === profile.protocol) ?? null
+
+  async function setWindow(newStart: string, newEnd: string, protocol: string) {
     setSaving(true)
-    await updateProfile({
-      window_start: newStart,
-      window_end: newEnd,
-      protocol: protocolName(newStart, newEnd),
-    })
+    await updateProfile({ window_start: newStart, window_end: newEnd, protocol })
     setSaving(false)
+  }
+
+  function onStartChange(v: string) {
+    if (!v) return
+    if (activePreset) {
+      const s = parseTime(v)
+      setWindow(v, formatTime(s + activePreset.len * 60), activePreset.name)
+    } else {
+      setWindow(v, end, 'vrij')
+    }
+  }
+
+  function onEndChange(v: string) {
+    if (!v) return
+    if (activePreset) {
+      const e = parseTime(v)
+      setWindow(formatTime(e - activePreset.len * 60), v, activePreset.name)
+    } else {
+      setWindow(start, v, 'vrij')
+    }
   }
 
   async function patchDay(day: ScheduleDay, patch: Partial<ScheduleDay>) {
@@ -63,13 +86,20 @@ export default function ScheduleView() {
         {PRESETS.map((p) => (
           <button
             key={p.name}
-            className={`chip ${protocolName(start, end) === p.name ? 'on' : ''}`}
+            className={`chip ${activePreset?.name === p.name ? 'on' : ''}`}
             style={{ ['--chip-color' as string]: 'var(--neon-cyan)' }}
-            onClick={() => setWindow(p.start, p.end)}
+            onClick={() => setWindow(p.start, p.end, p.name)}
           >
             {p.name}
           </button>
         ))}
+        <button
+          className={`chip ${activePreset ? '' : 'on'}`}
+          style={{ ['--chip-color' as string]: 'var(--neon-purple)' }}
+          onClick={() => updateProfile({ protocol: 'vrij' })}
+        >
+          vrij
+        </button>
       </div>
 
       <div className="card stack">
@@ -80,7 +110,7 @@ export default function ScheduleView() {
               id="win-start"
               type="time"
               value={start}
-              onChange={(e) => e.target.value && setWindow(e.target.value, end)}
+              onChange={(e) => onStartChange(e.target.value)}
             />
           </div>
           <div className="field">
@@ -89,13 +119,16 @@ export default function ScheduleView() {
               id="win-end"
               type="time"
               value={end}
-              onChange={(e) => e.target.value && setWindow(start, e.target.value)}
+              onChange={(e) => onEndChange(e.target.value)}
             />
           </div>
         </div>
         <p className="muted small">
-          {Math.round(24 - eatHours)} uur vasten, {Math.round(eatHours)} uur eten (
-          {protocolName(start, end)}){saving ? ' · opslaan…' : ''}
+          {Math.round(24 - eatHours)} uur vasten, {Math.round(eatHours)} uur eten
+          {activePreset
+            ? ` — ${activePreset.name} blijft vast staan: pas je één tijd aan, dan schuift de andere mee`
+            : ' — vrij ingesteld: beide tijden los aanpasbaar'}
+          {saving ? ' · opslaan…' : ''}
         </p>
       </div>
 
@@ -107,14 +140,56 @@ export default function ScheduleView() {
 
       <h2>Weekschema</h2>
       <p className="muted small">
-        Vink aan op welke dagen je vast. Per dag kun je het venster en je sport aanpassen.
+        Groen is je eetvenster, oranje je sport, de magenta lijn het geadviseerde startmoment van
+        je vast. Tik op een dag om hem aan te passen — het advies rekent direct mee.
       </p>
 
-      <div className="stack">
-        {days.map((day) => (
-          <DayEditor key={day.weekday} day={day} defaults={{ start, end }} onPatch={patchDay} />
-        ))}
+      <WeekGrid
+        days={days}
+        profile={profile}
+        selected={selectedDay}
+        onSelect={setSelectedDay}
+        onPatch={patchDay}
+      />
+
+      <div className="wg-legend">
+        <span><i style={{ background: 'rgba(46,224,106,0.4)' }} /> eetvenster</span>
+        <span><i style={{ background: 'rgba(255,160,46,0.5)' }} /> sport</span>
+        <span><i style={{ borderTop: '2px dashed var(--neon-magenta)', height: 0, width: 12 }} /> start vasten</span>
+        <span><i style={{ borderTop: '2px solid var(--neon-cyan)', height: 0, width: 12 }} /> nu</span>
       </div>
+
+      <h3 style={{ fontSize: 16 }}>{WEEKDAY_FULL[selectedDay]}</h3>
+      <DayEditor
+        key={selectedDay}
+        day={days[selectedDay]}
+        defaults={{ start, end }}
+        onPatch={patchDay}
+        defaultExpanded
+      />
+      {days[selectedDay].sport_type && (
+        <div className="stack" style={{ gap: 8 }}>
+          {sportAdvice(days[selectedDay].sport_type!, days[selectedDay], profile).map((a, i) => (
+            <div className={`advice ${a.level}`} key={i}>
+              <span>{a.text}</span>
+            </div>
+          ))}
+          {sportFixes(days[selectedDay], profile).length > 0 && (
+            <div className="chips">
+              {sportFixes(days[selectedDay], profile).map((f, i) => (
+                <button
+                  key={i}
+                  className="chip"
+                  style={{ ['--chip-color' as string]: 'var(--neon-lime)' }}
+                  onClick={() => patchDay(days[selectedDay], f.patch)}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {schedAdvice.map((a, i) => (
         <div className={`advice ${a.level}`} key={i}>
@@ -122,7 +197,7 @@ export default function ScheduleView() {
         </div>
       ))}
 
-      <SportAdviceBlock days={days} />
+      <SportAdviceBlock days={days} exclude={selectedDay} />
 
       <div className="card stack">
         <h3 style={{ fontSize: 16 }}>Hoe lang hou je dit vol?</h3>
@@ -140,12 +215,14 @@ function DayEditor({
   day,
   defaults,
   onPatch,
+  defaultExpanded = false,
 }: {
   day: ScheduleDay
   defaults: { start: string; end: string }
   onPatch: (day: ScheduleDay, patch: Partial<ScheduleDay>) => void
+  defaultExpanded?: boolean
 }) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(defaultExpanded)
   const sportOrder: (SportType | null)[] = [null, 'strength', 'endurance', 'intense', 'easy']
 
   return (
@@ -161,7 +238,9 @@ function DayEditor({
         {day.fasting
           ? `${(day.window_start ?? defaults.start).slice(0, 5)}–${(day.window_end ?? defaults.end).slice(0, 5)}`
           : 'vrij'}
-        {day.sport_type ? ` · ${SPORT_LABELS[day.sport_type]}` : ''}
+        {day.sport_type
+          ? ` · ${SPORT_LABELS[day.sport_type]}${day.sport_time ? ` om ${day.sport_time.slice(0, 5)}` : ''}`
+          : ''}
       </span>
       <button className="btn btn-ghost small" onClick={() => setExpanded(!expanded)}>
         {expanded ? '▲' : '▼'}
@@ -192,23 +271,35 @@ function DayEditor({
                   key={s ?? 'geen'}
                   className={`chip ${day.sport_type === s ? 'on' : ''}`}
                   style={{ ['--chip-color' as string]: 'var(--neon-orange)' }}
-                  onClick={() => onPatch(day, { sport_type: s })}
+                  onClick={() => onPatch(day, { sport_type: s, ...(s ? {} : { sport_time: null }) })}
                 >
                   {s ? SPORT_LABELS[s] : 'geen'}
                 </button>
               ))}
             </div>
           </div>
+          {day.sport_type && (
+            <div className="field">
+              <label>Hoe laat train je (ongeveer)?</label>
+              <input
+                type="time"
+                value={(day.sport_time ?? '').slice(0, 5)}
+                onChange={(e) => onPatch(day, { sport_time: e.target.value || null })}
+                aria-label="Traintijd op deze dag"
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
   )
 }
 
-function SportAdviceBlock({ days }: { days: ScheduleDay[] }) {
+function SportAdviceBlock({ days, exclude }: { days: ScheduleDay[]; exclude?: number }) {
   const { profile } = useAppData()
-  const sportDays = days.filter((d) => d.sport_type)
-  if (sportDays.length === 0) return null
+  const sportDays = days.filter((d) => d.sport_type && d.weekday !== exclude)
+  const swaps = swapAdvice(days, profile)
+  if (sportDays.length === 0 && swaps.length === 0) return null
   return (
     <div className="stack">
       <h2>Sport en vasten</h2>
@@ -216,12 +307,18 @@ function SportAdviceBlock({ days }: { days: ScheduleDay[] }) {
         <div className="card stack" key={d.weekday} style={{ gap: 8 }}>
           <strong className="small" style={{ textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             {WEEKDAY_LABELS[d.weekday]} · {SPORT_LABELS[d.sport_type!]}
+            {d.sport_time ? ` om ${d.sport_time.slice(0, 5)}` : ''}
           </strong>
           {sportAdvice(d.sport_type!, d, profile).map((a, i) => (
             <div className={`advice ${a.level}`} key={i}>
               <span>{a.text}</span>
             </div>
           ))}
+        </div>
+      ))}
+      {swaps.map((a, i) => (
+        <div className={`advice ${a.level}`} key={`swap-${i}`}>
+          <span>{a.text}</span>
         </div>
       ))}
     </div>

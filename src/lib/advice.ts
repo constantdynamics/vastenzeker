@@ -116,7 +116,16 @@ export function scheduleAdvice(
   return out
 }
 
-/** Sportadvies per dag: nuchter of gevoed, en waarschuwingen bij onverstandige combinaties. */
+function fmtMin(m: number): string {
+  const mm = ((m % 1440) + 1440) % 1440
+  return `${String(Math.floor(mm / 60)).padStart(2, '0')}:${String(mm % 60).padStart(2, '0')}`
+}
+
+/**
+ * Sportadvies per dag: nuchter of gevoed, tijdgebonden waarschuwingen bij
+ * onverstandige combinaties, en concrete suggesties om de training óf het
+ * venster te verschuiven. Altijd met onderbouwing.
+ */
 export function sportAdvice(
   sport: SportType,
   day: ScheduleDay | undefined,
@@ -125,14 +134,18 @@ export function sportAdvice(
   const out: Advice[] = []
   const start = day?.window_start ?? profile.window_start
   const end = day?.window_end ?? profile.window_end
-  const fastHours = 24 - windowLengthHours(start, end)
+  const openMin = parseTime(start)
+  let closeMin = parseTime(end)
+  if (closeMin <= openMin) closeMin += 1440
   const isFastingDay = day?.fasting ?? true
+  const heavySport = sport === 'strength' || sport === 'intense'
 
+  // Basisadvies per type
   switch (sport) {
     case 'easy':
       out.push({
         level: 'info',
-        text: 'Rustig bewegen (wandelen, fietsen, zone 2) kan prima nuchter. Je lichaam gebruikt dan vooral vet als brandstof.',
+        text: 'Rustig bewegen (wandelen, fietsen, zone 2) kan prima nuchter, op elk moment. Je lichaam gebruikt dan vooral vet als brandstof. Water is genoeg.',
       })
       break
     case 'endurance':
@@ -144,39 +157,153 @@ export function sportAdvice(
     case 'strength':
       out.push({
         level: 'info',
-        text: 'Krachttraining kan nuchter, maar je presteert meestal beter gevoed. Train aan het einde van je vast en eet binnen een paar uur na je training eiwit, dat helpt spierbehoud.',
+        text: 'Krachttraining kan nuchter, maar je presteert meestal beter gevoed of vlak voor je venster. Eet na je training eiwit; dat helpt spierbehoud en herstel.',
       })
-      if (isFastingDay && fastHours >= 18) {
-        out.push({
-          level: 'warning',
-          text: `Zware krachttraining diep in een vast van ${Math.round(fastHours)} uur is onverstandig: je glycogeen is dan grotendeels op en je blessurerisico stijgt. Verruim je venster op deze dag of train vlak voordat het opent.`,
-        })
-      }
       break
     case 'intense':
       out.push({
         level: 'caution',
         text: 'Intensieve intervallen of wedstrijden vragen om koolhydraten. Nuchter presteer je dan aantoonbaar minder en voelt het zwaarder. Plan deze training in of vlak voor je eetvenster.',
       })
-      if (isFastingDay && fastHours >= 16) {
-        out.push({
-          level: 'warning',
-          text: 'Intensief trainen aan het einde van een lange vast geeft risico op duizeligheid en slechte trainingskwaliteit. Open je venster eerder op deze dag.',
-        })
-      }
       break
   }
 
-  if (isFastingDay && (sport === 'strength' || sport === 'intense')) {
-    const startMin = parseTime(start)
-    if (startMin >= 14 * 60) {
+  // Tijdgebonden advies, alleen zinvol als er een traintijd is ingesteld
+  if (!day?.sport_time) {
+    out.push({
+      level: 'info',
+      text: 'Stel je traintijd in, dan kan de app precies adviseren of je beter je training of je venster verschuift.',
+    })
+  } else if (isFastingDay) {
+    const t = parseTime(day.sport_time)
+    const beforeOpen = openMin - t
+
+    if (t >= openMin && t < closeMin) {
       out.push({
         level: 'info',
-        text: `Voorstel voor deze sportdag: open je venster eerder (bijvoorbeeld ${Math.floor((startMin - 120) / 60)}:${String((startMin - 120) % 60).padStart(2, '0')}), zodat je binnen redelijke tijd na je training eet.`,
+        text: `Je traint om ${fmtMin(t)}, binnen je eetvenster (${fmtMin(openMin)}–${fmtMin(closeMin % 1440)}). Ideaal: je kunt vooraf iets lichts eten en na afloop een volwaardige maaltijd met eiwit.`,
+      })
+    } else if (t < openMin && beforeOpen <= 90) {
+      out.push({
+        level: 'info',
+        text: `Je traint om ${fmtMin(t)}, vlak voordat je venster om ${fmtMin(openMin)} opent. Dat is de sweet spot: nuchter trainen en direct daarna eten. Zo houd je herstel en vasten allebei intact.`,
+      })
+    } else if (t < openMin && beforeOpen <= 4 * 60) {
+      if (heavySport) {
+        out.push({
+          level: 'caution',
+          text: `Je traint om ${fmtMin(t)}, maar kunt pas om ${fmtMin(openMin)} eten — ${Math.round(beforeOpen / 60)} uur wachten na een zware sessie is niet handig voor herstel. Slimmer: verschuif je training naar ${fmtMin(openMin - 60)}, of open je venster op deze dag om ${fmtMin(t + 60)}.`,
+        })
+      }
+    } else if (t < openMin) {
+      if (heavySport) {
+        out.push({
+          level: 'warning',
+          text: `Zwaar trainen om ${fmtMin(t)} betekent diep in je vast trainen én lang wachten op je eerste maaltijd (venster opent pas om ${fmtMin(openMin)}). Je glycogeen is dan laag en je herstel lijdt eronder. Kies één van deze opties: train later (rond ${fmtMin(openMin - 60)}), open je venster op deze dag rond ${fmtMin(t + 60)}, of maak van deze dag een vrije dag.`,
+        })
+      } else if (sport === 'endurance') {
+        out.push({
+          level: 'caution',
+          text: `Lange duurtraining om ${fmtMin(t)} valt diep in je vast en je eet pas om ${fmtMin(openMin)}. Houd het kort en rustig, of verschuif je training richting je venster.`,
+        })
+      }
+    } else {
+      // training na venstersluiting
+      if (heavySport) {
+        out.push({
+          level: 'caution',
+          text: `Je traint om ${fmtMin(t)}, ná het sluiten van je venster (${fmtMin(closeMin % 1440)}). Je kunt dan niet meer eten na je training, en dat is precies het moment waarop eiwit het hardst nodig is. Verschuif op deze dag je venster naar later (bijvoorbeeld ${fmtMin(t - 5 * 60)}–${fmtMin(t + 90)}), of train eerder. Let wel: laat eten kan je slaap drukken.`,
+        })
+      } else {
+        out.push({
+          level: 'info',
+          text: `Je traint om ${fmtMin(t)}, na je venster. Voor rustige sessies is dat prima; drink water en eet morgen in je venster gewoon door.`,
+        })
+      }
+    }
+  } else {
+    out.push({
+      level: 'info',
+      text: 'Vrije dag: train wanneer het uitkomt en eet gewoon na afloop. Eiwit na krachttraining blijft het advies.',
+    })
+  }
+
+  // Herstel: eten en drinken na de training
+  out.push({
+    level: 'info',
+    text:
+      sport === 'easy'
+        ? 'Na afloop: water is genoeg. Een isotone sportdrank is bij rustig bewegen overbodig — en tijdens je vast breekt hij je vast, want hij bevat suiker.'
+        : 'Na je training, in je venster: 20–40 gram eiwit (kwark, eieren, kip, een shake) plus koolhydraten en ruim water. Isotone drank bevat suiker: tijdens je vast breekt hij je vast, maar in je venster na een lange, zware sessie is hij prima. Bij minder dan een uur sporten volstaat water met eventueel wat zout.',
+  })
+
+  return out
+}
+
+export interface SportFix {
+  label: string
+  patch: Partial<ScheduleDay>
+}
+
+/**
+ * Eén-tik-oplossingen bij een botsing tussen sport en vasten op een dag:
+ * training verschuiven, het venster van die dag meeschuiven, of de dag
+ * vrijgeven. De app past niets stilzwijgend aan — de gebruiker kiest.
+ */
+export function sportFixes(day: ScheduleDay, profile: Profile): SportFix[] {
+  if (!day.fasting || !day.sport_type || !day.sport_time) return []
+  const heavy = day.sport_type === 'strength' || day.sport_type === 'intense'
+  if (!heavy) return []
+
+  const open = parseTime(day.window_start ?? profile.window_start)
+  let close = parseTime(day.window_end ?? profile.window_end)
+  if (close <= open) close += 1440
+  const len = close - open
+  const t = parseTime(day.sport_time)
+  const fixes: SportFix[] = []
+
+  const shiftWindow = (newOpen: number): SportFix => ({
+    label: `Verschuif venster naar ${fmtMin(newOpen)}–${fmtMin((newOpen + len) % 1440)}`,
+    patch: { window_start: fmtMin(newOpen), window_end: fmtMin((newOpen + len) % 1440) },
+  })
+
+  if (t < open && open - t > 90) {
+    // zwaar trainen diep in de vast
+    fixes.push({ label: `Train om ${fmtMin(open - 60)}`, patch: { sport_time: fmtMin(open - 60) } })
+    fixes.push(shiftWindow(t + 60))
+    fixes.push({ label: 'Maak deze dag vrij', patch: { fasting: false } })
+  } else if (t >= close) {
+    // trainen na venstersluiting: schuif het venster zo dat je erna nog kunt eten
+    fixes.push(shiftWindow(Math.max(open, t + 90 - len)))
+    fixes.push({ label: `Train om ${fmtMin(open - 60)}`, patch: { sport_time: fmtMin(open - 60) } })
+  }
+  return fixes
+}
+
+/**
+ * Ruiladvies: als een zware sportdag botst met vasten en er is een vrije
+ * (weekend)dag, stel dan voor om te ruilen. Vasten in het weekend is prima;
+ * een zware sportdag is juist de logischste dag om niet te vasten.
+ */
+export function swapAdvice(schedule: ScheduleDay[], profile: Profile): Advice[] {
+  const out: Advice[] = []
+  const dayNames = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag']
+  const freeDays = schedule.filter((d) => !d.fasting && !d.sport_type)
+
+  for (const d of schedule) {
+    if (!d.fasting || (d.sport_type !== 'strength' && d.sport_type !== 'intense')) continue
+    const open = parseTime(d.window_start ?? profile.window_start)
+    const t = d.sport_time ? parseTime(d.sport_time) : null
+    const deepInFast = t !== null && t < open && open - t > 4 * 60
+    if (!deepInFast) continue
+    const swap = freeDays[0]
+    if (swap) {
+      out.push({
+        level: 'info',
+        text: `Ruil-optie: maak van ${dayNames[d.weekday]} (zware training om ${d.sport_time!.slice(0, 5)}) een vrije dag en vast in plaats daarvan op ${dayNames[swap.weekday]}. Zwaar trainen en diep vasten gaan slecht samen; vasten in het weekend werkt net zo goed, als het in je gezinsritme past.`,
       })
     }
   }
-
   return out
 }
 

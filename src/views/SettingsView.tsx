@@ -68,7 +68,7 @@ export default function SettingsView() {
       <div className="card stack">
         <h3 style={{ fontSize: 16 }}>Disclaimer</h3>
         <p className="muted small">
-          Vast en Zeker geeft geen medisch advies. Intermittent fasting is niet geschikt bij
+          Zip Your Lip geeft geen medisch advies. Intermittent fasting is niet geschikt bij
           diabetes met medicatie, een (voorgeschiedenis van een) eetstoornis, zwangerschap of
           ondergewicht, en hoort bij medicijngebruik of aandoeningen alleen in overleg met een
           arts. Voel je je beroerd tijdens het vasten: stop. De app zal je daar nooit voor
@@ -104,7 +104,7 @@ export default function SettingsView() {
       </div>
 
       <p className="faint" style={{ textAlign: 'center' }}>
-        Vast en Zeker · geen notificaties, geen gezeur — alles staat hier als jij de app opent
+        Zip Your Lip · geen notificaties, geen gezeur — alles staat hier als jij de app opent
       </p>
     </div>
   )

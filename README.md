@@ -1,4 +1,4 @@
-# Vast en Zeker
+# Zip Your Lip
 
 Nederlandstalige PWA die helpt om intermittent fasting vol te houden. Eén blik op het scherm en je weet of je nu mag eten (groen) of nog vast (rood) — en bij elke opening van de app krijg je iets nieuws en nuttigs te lezen uit een voorraad van 250+ tips.
 
@@ -6,7 +6,8 @@ Gebouwd voor de drukke vader in een jong gezin: nuchter, praktisch, geen wellnes
 
 ## Functionaliteit
 
-- **Statusindicator** — groot en direct leesbaar: groen (eetvenster open) of rood (je vast), met timer en voortgangsring. Status wordt altijd ondersteund met tekst en icoon, niet alleen kleur.
+- **Statusindicator** — groot en direct leesbaar: groen (je mag eten) of rood (je vast), met timer en voortgangsring. Status wordt altijd ondersteund met tekst en icoon, niet alleen kleur.
+- **Handmatige start** — de app toont dagelijks een indicator van hoe laat je ongeveer moet beginnen met vasten (afgeleid van je venster), maar het vasten begint pas als je zelf op de grote neonknop drukt. Vanaf dat moment loopt de teller; bij het bereiken van je doel rondt de app de vast automatisch af als gehaald.
 - **Vensterinstelling met idealadvies** — presets (14:10, 16:8, 18:6, 20:4, OMAD) plus vrij instelbaar. De app adviseert (vroeg venster gunstiger, laat eten drukt de slaap), verbiedt niet — behalve expliciete waarschuwingen bij extreme instellingen.
 - **250+ tips** met contextafhankelijke rotatie: de tip past bij de fase van je vast, sportdagen en zware momenten. Geen herhaling tot de voorraad op is.
 - **Hartjes** — favoriete tips bewaren, filteren op categorie, en weer verwijderen.

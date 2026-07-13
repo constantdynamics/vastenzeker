@@ -3,7 +3,7 @@ import { useAppData } from '../App'
 import { computeStatus, formatClock } from '../lib/time'
 import { pickTip } from '../lib/tips'
 import { CATEGORY_COLORS, CATEGORY_LABELS } from '../lib/types'
-import type { Tip } from '../lib/types'
+import type { Tip, TipCategory } from '../lib/types'
 
 /**
  * De "ik heb het zwaar"-flow: swipebare kaarten met één krachtig inzicht
@@ -11,35 +11,54 @@ import type { Tip } from '../lib/types'
  * Stoppen kan altijd, zonder schuldgevoel en zonder straf.
  */
 export default function HeavyFlow({ onClose }: { onClose: () => void }) {
-  const { profile, schedule, tips, reads, markRead, upsertToday } = useAppData()
+  const { profile, schedule, tips, reads, markRead, patchFast, activeFast, refresh } = useAppData()
 
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(id)
   }, [])
-  const status = useMemo(() => computeStatus(now, profile, schedule), [now, profile, schedule])
+  const status = useMemo(
+    () => computeStatus(now, profile, schedule, activeFast?.started_at ?? null),
+    [now, profile, schedule, activeFast],
+  )
 
   const [card, setCard] = useState<Tip | null>(null)
   const [seen, setSeen] = useState<number[]>([])
   const [stopScreen, setStopScreen] = useState(false)
+  const [cat, setCat] = useState<'alle' | TipCategory>('alle')
   const started = useRef(false)
+
+  // Categorieën waarin zwaar-kaarten bestaan, voor het keuzemenu bovenin
+  const heavyCats = useMemo(
+    () => [...new Set(tips.filter((t) => t.heavy).map((t) => t.category))],
+    [tips],
+  )
 
   useEffect(() => {
     if (started.current || tips.length === 0) return
     started.current = true
-    advance([])
+    advance([], 'alle')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tips])
 
-  function advance(exclude: number[]) {
-    const s = computeStatus(new Date(), profile, schedule)
-    const t = pickTip(tips, reads, { phase: s.phase, sportDay: s.sport !== null, heavy: true }, exclude)
+  function advance(exclude: number[], forCat: 'alle' | TipCategory = cat) {
+    const pool = forCat === 'alle' ? tips : tips.filter((t) => t.category === forCat)
+    const s = computeStatus(new Date(), profile, schedule, activeFast?.started_at ?? null)
+    const ctx = { phase: s.phase, sportDay: s.sport !== null, heavy: true }
+    // kleine categorie: als alles al langskwam, sluit alleen de huidige kaart uit
+    const t =
+      pickTip(pool, reads, ctx, exclude) ?? pickTip(pool, reads, ctx, card ? [card.id] : [])
     if (t) {
       setCard(t)
       setSeen((prev) => [...prev, t.id])
       markRead(t.id, true)
     }
+  }
+
+  function chooseCat(next: 'alle' | TipCategory) {
+    setCat(next)
+    advance([], next)
   }
 
   // swipe-afhandeling
@@ -59,7 +78,9 @@ export default function HeavyFlow({ onClose }: { onClose: () => void }) {
   }
 
   async function stopToday() {
-    await upsertToday({ status: 'broken', ended_at: new Date().toISOString() })
+    // Patch het lopende vast-record; dat kan van gisteren zijn bij een nachtvast.
+    const day = activeFast?.day ?? new Date().toISOString().slice(0, 10)
+    await patchFast(day, { status: 'broken', ended_at: new Date().toISOString() })
     onClose()
   }
 
@@ -106,6 +127,29 @@ export default function HeavyFlow({ onClose }: { onClose: () => void }) {
         <span className="faint">Dit is tijdelijk. De golf zakt vanzelf.</span>
       </div>
 
+      <div className="heavy-cats" role="tablist" aria-label="Kies een categorie">
+        <button
+          className={`chip ${cat === 'alle' ? 'on' : ''}`}
+          onClick={() => chooseCat('alle')}
+          role="tab"
+          aria-selected={cat === 'alle'}
+        >
+          alles
+        </button>
+        {heavyCats.map((c) => (
+          <button
+            key={c}
+            className={`chip ${cat === c ? 'on' : ''}`}
+            style={{ ['--chip-color' as string]: CATEGORY_COLORS[c] }}
+            onClick={() => chooseCat(c)}
+            role="tab"
+            aria-selected={cat === c}
+          >
+            {CATEGORY_LABELS[c]}
+          </button>
+        ))}
+      </div>
+
       <div
         className="heavy-card-zone"
         onTouchStart={onTouchStart}
@@ -128,6 +172,25 @@ export default function HeavyFlow({ onClose }: { onClose: () => void }) {
             <p className="tip-body">{card.body}</p>
             {card.action && <div className="heavy-action">Doe nu: {card.action}</div>}
           </article>
+        ) : heavyCats.length === 0 ? (
+          <div className="heavy-card" style={{ ['--accent' as string]: 'var(--neon-purple)' }}>
+            <h2 style={{ fontSize: 20 }}>Kaarten konden niet geladen worden</h2>
+            <p className="tip-body">
+              Waarschijnlijk hapert je verbinding. Probeer het opnieuw — en onthoud intussen: wat
+              je nu voelt is een golf, geen noodsituatie. Drink een glas water.
+            </p>
+            <button
+              className="btn"
+              style={{ marginTop: 'auto' }}
+              onClick={() => {
+                // eerst resetten, dan verversen: de tips-effect pakt de nieuwe lading op
+                started.current = false
+                refresh()
+              }}
+            >
+              Opnieuw laden
+            </button>
+          </div>
         ) : (
           <p className="muted">Kaarten laden…</p>
         )}

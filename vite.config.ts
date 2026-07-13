@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'Vast en Zeker',
-        short_name: 'Vast en Zeker',
+        name: 'Zip Your Lip',
+        short_name: 'Zip Your Lip',
         description: 'Nuchtere hulp bij intermittent fasting. Zien of je nu mag eten, en waarom volhouden loont.',
         lang: 'nl',
         start_url: '/vastenzeker/',
@@ -29,14 +29,11 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         navigateFallback: '/vastenzeker/index.html',
-        runtimeCaching: [
-          {
-            // Tips veranderen zelden: cache-first met achtergrondverversing
-            urlPattern: /supabase\.co\/rest\/v1\/if_tips/,
-            handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'if-tips', expiration: { maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 * 7 } },
-          },
-        ],
+        cleanupOutdatedCaches: true,
+        // Geen runtime-caching van Supabase-API-antwoorden: een gecachet leeg
+        // antwoord (bijv. van vóór de seed of zonder geldige sessie) blijft
+        // anders eindeloos hangen. Offline-fallback voor tips loopt via
+        // localStorage in loadTips().
       },
     }),
   ],

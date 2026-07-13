@@ -12,7 +12,11 @@ export async function loadTips(): Promise<Tip[]> {
       .order('id')
     if (error) throw error
     if (data && data.length > 0) {
-      localStorage.setItem(TIPS_CACHE_KEY, JSON.stringify(data))
+      try {
+        localStorage.setItem(TIPS_CACHE_KEY, JSON.stringify(data))
+      } catch {
+        // opslag vol of geblokkeerd: cache overslaan
+      }
       return data as Tip[]
     }
   } catch {

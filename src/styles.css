@@ -218,6 +218,43 @@ input[type='time'] {
   box-shadow: 0 6px 32px -10px rgba(219, 39, 119, 0.7);
 }
 
+/* De grote neonknop waarmee het vasten daadwerkelijk begint */
+.btn-start {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 20px 16px;
+  border-radius: 20px;
+  border: none;
+  color: #0b0b10;
+  background: linear-gradient(120deg, var(--neon-magenta), var(--neon-cyan), var(--neon-lime));
+  background-size: 200% 200%;
+  animation: btn-start-glow 4s ease infinite;
+  box-shadow:
+    0 0 28px -4px rgba(255, 46, 230, 0.6),
+    0 0 48px -8px rgba(0, 229, 255, 0.5);
+  transition: transform 0.08s ease;
+}
+.btn-start:active { transform: scale(0.97); }
+.btn-start-label {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.btn-start-sub {
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+@keyframes btn-start-glow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
 /* ---------- chips ---------- */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
@@ -311,9 +348,17 @@ input[type='time'] {
   padding: 10px 4px 8px;
   font-size: 11px;
   font-weight: 700;
-  color: var(--text-faint);
+  color: var(--nav-color, var(--text-faint));
+  opacity: 0.55;
+  transition: opacity 0.12s ease;
 }
-.nav button.on { color: var(--neon-cyan); text-shadow: 0 0 12px var(--neon-cyan); }
+.nav button.on {
+  opacity: 1;
+  text-shadow: 0 0 12px var(--nav-color);
+}
+.nav button.on svg {
+  filter: drop-shadow(0 0 6px var(--nav-color));
+}
 .nav svg { width: 22px; height: 22px; }
 
 /* ---------- zwaar-flow ---------- */
@@ -338,6 +383,16 @@ input[type='time'] {
   font-weight: 900;
   font-variant-numeric: tabular-nums;
 }
+.heavy-cats {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 10px 14px 2px;
+  scrollbar-width: none;
+}
+.heavy-cats::-webkit-scrollbar { display: none; }
+.heavy-cats .chip { flex-shrink: 0; font-size: 12px; padding: 5px 11px; }
+
 .heavy-card-zone {
   flex: 1;
   display: flex;
@@ -416,6 +471,174 @@ input[type='time'] {
 }
 .toggle.on::after { left: 21px; }
 
+/* ---------- weekoverzicht ---------- */
+.week-grid {
+  display: flex;
+  gap: 4px;
+  align-items: flex-start;
+}
+.wg-axis {
+  position: relative;
+  width: 26px;
+  flex-shrink: 0;
+}
+.wg-axis span {
+  position: absolute;
+  right: 2px;
+  transform: translateY(-50%);
+  font-size: 9px;
+  font-family: ui-monospace, monospace;
+  color: var(--text-faint);
+}
+.wg-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-raised);
+  overflow: hidden;
+  padding: 0;
+}
+.wg-col.today { border-color: rgba(0, 229, 255, 0.55); box-shadow: 0 0 12px -4px var(--neon-cyan); }
+.wg-col.selected { border-color: var(--neon-magenta); box-shadow: 0 0 12px -4px var(--neon-magenta); }
+.wg-col.free { opacity: 0.75; }
+.wg-col { cursor: pointer; }
+.wg-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 34px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.wg-col.today .wg-head { color: var(--neon-cyan); }
+.wg-flag { font-size: 10px; }
+.wg-flag.warn { color: var(--status-red); }
+.wg-flag.caution { color: var(--neon-orange); }
+.wg-body {
+  position: relative;
+  display: block;
+  /* subtiel uurraster zoals in een agenda */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--wg-hour, 25px) - 1px),
+    rgba(255, 255, 255, 0.05) calc(var(--wg-hour, 25px) - 1px),
+    rgba(255, 255, 255, 0.05) var(--wg-hour, 25px)
+  );
+}
+.wg-eat {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  border-radius: 8px;
+  background: linear-gradient(rgba(46, 224, 106, 0.32), rgba(46, 224, 106, 0.16));
+  border: 1px solid rgba(46, 224, 106, 0.6);
+  box-shadow: 0 0 10px -4px var(--status-green);
+  touch-action: none;
+  cursor: grab;
+}
+.wg-eat em,
+.wg-sport em {
+  position: absolute;
+  left: 3px;
+  top: 2px;
+  font-size: 8px;
+  font-style: normal;
+  font-family: ui-monospace, monospace;
+  color: var(--text);
+  opacity: 0.85;
+}
+.wg-eat em.end { top: auto; bottom: 2px; }
+.wg-eat.dragging,
+.wg-sport.dragging {
+  cursor: grabbing;
+  filter: brightness(1.35);
+  z-index: 5;
+}
+.wg-sport {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  border-radius: 7px;
+  background: linear-gradient(rgba(255, 160, 46, 0.45), rgba(255, 160, 46, 0.25));
+  border: 1px solid rgba(255, 160, 46, 0.8);
+  box-shadow: 0 0 10px -4px var(--neon-orange);
+  color: #ffe1bd;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  cursor: grab;
+  z-index: 2;
+}
+.wg-sport em { top: auto; bottom: 1px; left: auto; right: 3px; font-weight: 400; }
+.wg-advise {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 2px dashed var(--neon-magenta);
+  filter: drop-shadow(0 0 4px var(--neon-magenta));
+  z-index: 3;
+  pointer-events: none;
+}
+.wg-advise em {
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  font-size: 8px;
+  font-style: normal;
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  color: #ffb8f2;
+  background: rgba(20, 10, 22, 0.85);
+  border-radius: 4px;
+  padding: 0 3px;
+}
+.wg-now {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 2px solid var(--neon-cyan);
+  filter: drop-shadow(0 0 4px var(--neon-cyan));
+}
+.wg-free-label {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 10px;
+  color: var(--text-faint);
+  transform: rotate(-90deg);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.wg-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.wg-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  margin-right: 4px;
+  vertical-align: -1px;
+  font-style: normal;
+}
+
 /* ---------- grafiek ---------- */
 .chart-wrap { overflow-x: auto; }
 
@@ -478,6 +701,110 @@ input[type='time'] {
 .ok-text { color: var(--status-green); font-size: 14px; }
 
 a { color: var(--neon-cyan); }
+
+/* ---------- lay-outwrappers (mobiel: gewoon gestapeld) ---------- */
+.nav-brand { display: none; }
+.home-cols,
+.home-col,
+.two-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.fav-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+/* ---------- desktop ---------- */
+@media (min-width: 900px) {
+  #root {
+    max-width: 1180px;
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  /* tabbalk wordt een zijbalk */
+  .nav {
+    position: sticky;
+    top: 0;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    order: -1;
+    width: 212px;
+    max-width: none;
+    height: 100dvh;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 6px;
+    padding: 28px 14px;
+    border-top: none;
+    border-right: 1px solid var(--border);
+    background: transparent;
+    backdrop-filter: none;
+    flex-shrink: 0;
+  }
+  .nav-brand {
+    display: block;
+    font-size: 21px;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    background: linear-gradient(120deg, var(--neon-magenta), var(--neon-cyan), var(--neon-lime));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 0 14px rgba(255, 46, 230, 0.3));
+    padding: 0 10px 20px;
+  }
+  .nav button {
+    flex: 0 0 auto;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    width: 100%;
+    font-size: 15px;
+    padding: 12px 14px;
+    border-radius: 12px;
+  }
+  .nav button.on {
+    background: var(--bg-raised);
+  }
+
+  .app-main {
+    flex: 1;
+    min-width: 0;
+    padding: 36px 44px 48px;
+    gap: 20px;
+  }
+
+  /* hoofdscherm in twee kolommen */
+  .home-cols {
+    flex-direction: row;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  .home-col { flex: 1; }
+
+  .two-col { flex-direction: row; }
+  .two-col > * { flex: 1; }
+
+  .fav-grid { grid-template-columns: 1fr 1fr; }
+
+  .status-timer { font-size: 52px; }
+  .heavy-screen { max-width: 660px; }
+  .heavy-card { min-height: 340px; }
+
+  /* het weekschema krijgt lucht */
+  .week-grid { gap: 8px; }
+  .wg-axis { width: 32px; }
+  .wg-axis span { font-size: 11px; }
+  .wg-eat em, .wg-sport em { font-size: 10px; }
+  .wg-advise em { font-size: 10px; }
+  .wg-head { font-size: 13px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
