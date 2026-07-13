@@ -74,6 +74,7 @@ export default function Onboarding() {
         window_end: null,
         sport_type: sportDays[d] ?? null,
         sport_time: sportDays[d] ? sportTime || null : null,
+        sport_end_time: null,
       })
     }
     setBusy(false)

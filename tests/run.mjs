@@ -13,12 +13,18 @@ for (const [src, name] of [
   ['src/lib/time.ts', 'time-bundle.mjs'],
   ['src/lib/streak.ts', 'streak-bundle.mjs'],
   ['src/lib/advice.ts', 'advice-bundle.mjs'],
+  ['src/lib/nutrition/daytype.ts', 'nutrition-daytype-bundle.mjs'],
+  ['src/lib/nutrition/engine.ts', 'nutrition-engine-bundle.mjs'],
+  ['src/lib/nutrition/macros.ts', 'nutrition-macros-bundle.mjs'],
+  ['src/lib/nutrition/copy.ts', 'nutrition-copy-bundle.mjs'],
+  ['src/lib/nutrition/seedData.ts', 'nutrition-seed-bundle.mjs'],
+  ['src/lib/nutrition/shopping.ts', 'nutrition-shopping-bundle.mjs'],
 ]) {
   execFileSync(esbuild, [join(root, src), '--bundle', '--format=esm', `--outfile=${join(out, name)}`])
 }
 
 let failed = false
-for (const test of ['time.test.mjs', 'logic.test.mjs']) {
+for (const test of ['time.test.mjs', 'logic.test.mjs', 'nutrition.test.mjs']) {
   console.log(`\n== ${test} ==`)
   try {
     execFileSync('node', [join(root, 'tests', test)], { stdio: 'inherit' })

@@ -34,6 +34,7 @@ export default function ScheduleView() {
           window_end: null,
           sport_type: null,
           sport_time: null,
+          sport_end_time: null,
         }
       )
     })
@@ -281,12 +282,24 @@ function DayEditor({
           {day.sport_type && (
             <div className="field">
               <label>Hoe laat train je (ongeveer)?</label>
-              <input
-                type="time"
-                value={(day.sport_time ?? '').slice(0, 5)}
-                onChange={(e) => onPatch(day, { sport_time: e.target.value || null })}
-                aria-label="Traintijd op deze dag"
-              />
+              <div className="row">
+                <input
+                  type="time"
+                  value={(day.sport_time ?? '').slice(0, 5)}
+                  onChange={(e) => onPatch(day, { sport_time: e.target.value || null })}
+                  aria-label="Traintijd op deze dag"
+                />
+                <input
+                  type="time"
+                  value={(day.sport_end_time ?? '').slice(0, 5)}
+                  onChange={(e) => onPatch(day, { sport_end_time: e.target.value || null })}
+                  aria-label="Tot hoe laat train je op deze dag"
+                />
+              </div>
+              <p className="faint" style={{ margin: 0 }}>
+                Van–tot. De eindtijd stuurt de maaltijdtiming in het Eten-tabblad: je lunch na een
+                nuchtere training, je pre-workout ervoor.
+              </p>
             </div>
           )}
         </div>
