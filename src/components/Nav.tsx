@@ -1,4 +1,4 @@
-export type Tab = 'home' | 'schema' | 'hartjes' | 'meten' | 'meer'
+export type Tab = 'home' | 'eten' | 'schema' | 'hartjes' | 'meten' | 'meer'
 
 const items: { key: Tab; label: string; color: string; icon: JSX.Element }[] = [
   {
@@ -9,6 +9,17 @@ const items: { key: Tab; label: string; color: string; icon: JSX.Element }[] = [
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <circle cx="12" cy="12" r="9" />
         <path d="M12 7v5l3 3" />
+      </svg>
+    ),
+  },
+  {
+    key: 'eten',
+    label: 'Eten',
+    color: 'var(--neon-teal)',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M7 3v7a2 2 0 0 0 2 2v9M11 3v7a2 2 0 0 1-2 2M4 3v7a2 2 0 0 0 2 2" />
+        <path d="M17 3c-1.5 2-2 4-2 6 0 2 1 3 2 3v9" />
       </svg>
     ),
   },

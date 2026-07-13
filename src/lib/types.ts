@@ -46,6 +46,7 @@ export interface ScheduleDay {
   window_end: string | null
   sport_type: SportType | null
   sport_time: string | null // 'HH:MM:SS', hoe laat je ongeveer traint
+  sport_end_time: string | null // 'HH:MM:SS', tot hoe laat — voor maaltijdtiming
 }
 
 export interface Tip {
@@ -82,6 +83,8 @@ export interface FastDay {
   focus: number | null
   heavy_presses: number
   note: string | null
+  /** Waarom deze dag bewust is overgeslagen, bv. 'bad_night'. */
+  skip_reason: string | null
 }
 
 export interface Measurement {

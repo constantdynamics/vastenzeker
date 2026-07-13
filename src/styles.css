@@ -255,6 +255,15 @@ input[type='time'] {
   50% { background-position: 100% 50%; }
 }
 
+/* ---------- slechte nacht ---------- */
+.bad-night-btn { color: var(--text-dim); font-weight: 600; font-size: 14px; }
+.link-btn {
+  color: var(--neon-cyan);
+  text-decoration: underline;
+  font-size: inherit;
+  padding: 0;
+}
+
 /* ---------- chips ---------- */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {

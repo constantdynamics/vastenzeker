@@ -1,0 +1,1727 @@
+// src/lib/nutrition/copy.ts
+var INGREDIENT_RATIONALES = {
+  "magere-kwark": `10 gram eiwit per 100 gram voor 54 kcal. De beste eiwit/calorie-verhouding in je hele lijst. Case\xEFne, dus langzaam verteerbaar.`,
+  kefir: `3,4 gram eiwit per 100 ml \u2014 een derde van kwark. Prima als drank of om kwark drinkbaar te maken, maar reken het niet mee als eiwitbron.`,
+  "halfvolle-melk": `Zelfde verhaal als kefir: 3,5 gram eiwit per 100 ml. Om 40 gram eiwit uit melk te halen moet je meer dan een liter drinken. Ingredi\xEBnt, geen eiwitbron.`,
+  walnoot: `Veruit de meeste plantaardige omega-3 (ALA) van alle noten, en het sterkste onderzoek naar LDL-verlaging. Belangrijk: dat effect komt uit vervangen, niet uit toevoegen. Walnoten in plaats van kaas of koek is winst; walnoten er bovenop is 300 kcal. Doelportie: 20\u201325 gram per dag.`,
+  amandel: `Meeste eiwit van alle noten, plus vitamine E en vezels. Als je \xE9\xE9n noot kiest voor je doel: deze.`,
+  cashew: `Minste calorie\xEBn van de noten, maar ook de minste goede vetten. Prima voor de variatie.`,
+  pistache: `Koop ze met dop. Je moet ze pellen, dus je eet automatisch langzamer en minder \u2014 en de doppen liggen als een ingebouwde teller voor je neus.`,
+  pecan: `Meeste calorie\xEBn, minste eiwit van alle noten. Lekker, maar dit is dessert \u2014 geen gezondheidskeuze.`,
+  paranoot: `E\xE9n per dag dekt je hele seleniumbehoefte. Maximaal 3 \u2014 selenium is een van de weinige voedingsstoffen waar m\xE9\xE9r echt slechter is.`,
+  pindakaas: `Voor de helft vet (9 kcal per gram) en maar 25 gram eiwit per 100 gram. Het is een vetbron met een beetje eiwit \u2014 geen eiwitbron. Gecapt op 15 gram per dag: \xE9\xE9n afgestreken lepel.`
+};
+
+// src/lib/nutrition/seedData.ts
+var EXTRA_RATIONALES = {
+  skyr: `11 gram eiwit per 100 gram \u2014 net boven kwark. IJslandse wrongel, dus net als kwark case\xEFnedominant en traag verteerbaar.`,
+  huttenkase: `12 gram eiwit per 100 gram, iets vetter dan kwark (4 gram). De hartige optie in een verder zoete zuivellijst.`,
+  "griekse-yoghurt": `10 gram eiwit per 100 gram voor 59 kcal \u2014 vrijwel kwark. Alleen de 0%-variant; de volle versie verdrievoudigt de calorie\xEBn.`,
+  ei: `6,3 gram eiwit per stuk, met de hoogste biologische waarde van je hele lijst. Maar ook 5 gram vet per stuk \u2014 het aantal telt.`,
+  tonijn: `24 gram eiwit per 100 gram voor 91 kcal, uit een blik dat jaren houdbaar is. Op water, niet op olie \u2014 dat scheelt zo'n 100 kcal per blik.`,
+  havermout: `Volkoren, 10 gram vezels per 100 gram en trage koolhydraten. Na een nuchtere krachttraining juist het middel om je glycogeen bij te vullen.`,
+  hazelnoot: `Qua profiel dicht bij de walnoot, maar zonder de omega-3. Prima voor variatie binnen het notenbudget, geen vervanger van de walnoot-basis.`,
+  edamame: `12 gram eiwit \xE9n 5 gram vezels per 100 gram \u2014 de peulvrucht die w\xE9l als eiwitbron mag meetellen.`,
+  honing: `82 gram suiker per 100 gram. Als theelepel (7 gram, 21 kcal) een goedkope smaakmaker; als knijpfles een lek.`,
+  kalkoenfilet: `29 gram eiwit per 100 gram voor maar 135 kcal \u2014 nog magerder dan kipfilet.`
+};
+function ing(slug, name, kcal100, protein100, carb100, fat100, fiber100, category, extras = {}) {
+  return {
+    id: slug,
+    // in de app vervangt Supabase dit door het numerieke id
+    slug,
+    name,
+    kcal100,
+    protein100,
+    carb100,
+    fat100,
+    fiber100,
+    category,
+    isNut: extras.nutType != null,
+    nutType: extras.nutType ?? null,
+    pieceGrams: extras.pieceGrams ?? null,
+    isPeanutButter: extras.isPeanutButter ?? false,
+    rationale: INGREDIENT_RATIONALES[slug] ?? EXTRA_RATIONALES[slug] ?? null,
+    source: "seed",
+    externalId: null
+  };
+}
+var SEED_INGREDIENTS = [
+  // Zuivel
+  ing("magere-kwark", "Magere kwark", 54, 10, 4, 0.2, 0, "dairy"),
+  ing("skyr", "Skyr", 63, 11, 4, 0.2, 0, "dairy"),
+  ing("huttenkase", "H\xFCttenk\xE4se", 95, 12, 3, 4, 0, "dairy"),
+  ing("griekse-yoghurt", "Griekse yoghurt 0%", 59, 10, 4, 0, 0, "dairy"),
+  // Dranken
+  ing("kefir", "Kefir naturel", 50, 3.4, 4, 2, 0, "drink"),
+  ing("halfvolle-melk", "Halfvolle melk", 46, 3.5, 4.7, 1.5, 0, "drink"),
+  // Brood & granen
+  ing("volkorenbrood", "Volkorenbrood", 235, 9, 40, 3, 6, "grain", { pieceGrams: 35 }),
+  ing("havermout", "Havermout", 375, 13, 60, 7, 10, "grain"),
+  ing("rijstwafel", "Rijstwafel", 386, 8.6, 86, 1.4, 3, "grain", { pieceGrams: 7 }),
+  ing("rijst", "Rijst (gekookt)", 130, 2.7, 28, 0.3, 0.4, "grain"),
+  ing("granola", "Granola", 450, 10, 60, 16, 6, "grain"),
+  ing("volkoren-wrap", "Volkoren wrap", 260, 9, 43, 5, 5, "grain", { pieceGrams: 62 }),
+  ing("volkoren-pasta", "Volkoren pasta (gekookt)", 130, 5.5, 25, 1, 4, "grain"),
+  ing("noedels", "Noedels (gekookt)", 138, 4.5, 25, 2, 1.5, "grain"),
+  ing("volkoren-cracker", "Volkoren cracker", 400, 10, 65, 8, 8, "grain", { pieceGrams: 10 }),
+  // Vlees, vis & eiwit
+  ing("ei", "Ei", 127, 11.5, 0.7, 9.1, 0, "protein", { pieceGrams: 55 }),
+  ing("tonijn", "Tonijn op water (uitgelekt)", 91, 24, 0, 1, 0, "protein"),
+  ing("kipfilet", "Kipfilet (gaar)", 165, 31, 0, 3.6, 0, "protein"),
+  ing("kalkoenfilet", "Kalkoenfilet", 135, 29, 0, 1.5, 0, "protein"),
+  ing("gerookte-zalm", "Gerookte zalm", 180, 22, 0, 10, 0, "protein"),
+  ing("zalmfilet", "Zalmfilet", 208, 20, 0, 13, 0, "protein"),
+  ing("kabeljauw", "Kabeljauw", 82, 18, 0, 0.7, 0, "protein"),
+  ing("garnalen", "Garnalen", 99, 24, 0, 0.3, 0, "protein"),
+  ing("rundergehakt-mager", "Mager rundergehakt (5%)", 137, 21, 0, 5, 0, "protein"),
+  ing("biefstuk", "Biefstuk (mager)", 180, 27, 0, 7, 0, "protein"),
+  ing("edamame", "Edamame (gedopt)", 121, 12, 9, 5, 5, "protein"),
+  ing("linzen", "Linzen (gekookt)", 116, 9, 20, 0.4, 8, "protein"),
+  ing("tofu", "Tofu", 76, 8, 2, 4.8, 1, "protein"),
+  // Noten (isNut → notenbudget §2 regel 3)
+  ing("walnoot", "Walnoot", 654, 15, 14, 65, 7, "nut", { nutType: "walnoot" }),
+  ing("amandel", "Amandel", 579, 21, 22, 50, 10, "nut", { nutType: "amandel" }),
+  ing("cashew", "Cashew", 553, 18, 30, 44, 6, "nut", { nutType: "cashew" }),
+  ing("pistache", "Pistache", 560, 20, 28, 45, 10, "nut", { nutType: "pistache" }),
+  ing("hazelnoot", "Hazelnoot", 628, 15, 17, 61, 9, "nut", { nutType: "hazelnoot" }),
+  ing("pecan", "Pecan", 691, 9, 14, 72, 9, "nut", { nutType: "pecan" }),
+  ing("paranoot", "Paranoot", 659, 14, 12, 67, 8, "nut", { nutType: "paranoot", pieceGrams: 5 }),
+  // Pinda is een peulvrucht: geen isNut, wél de eigen 15 g/dag-cap (§2 regel 4).
+  ing("pindakaas", "Pindakaas", 600, 25, 12, 50, 6, "fat", { isPeanutButter: true }),
+  // Fruit
+  ing("banaan", "Banaan", 87.5, 1.1, 22.5, 0.33, 2, "fruit", { pieceGrams: 120 }),
+  ing("blauwe-bessen", "Blauwe bessen", 57, 0.7, 14, 0.3, 2.4, "fruit"),
+  ing("aardbeien", "Aardbeien", 32, 0.7, 8, 0.3, 2, "fruit"),
+  ing("appel", "Appel", 52, 0.3, 14, 0.2, 2.2, "fruit", { pieceGrams: 150 }),
+  // Groente
+  ing("zoete-aardappel", "Zoete aardappel (gekookt)", 90, 2, 21, 0.1, 3, "veg"),
+  ing("aardappel", "Aardappel (gekookt)", 87, 2, 20, 0.1, 1.8, "veg"),
+  ing("augurk", "Augurk", 12, 0.5, 2, 0.1, 1, "veg"),
+  ing("tomaat", "Tomaat", 18, 0.9, 3.5, 0.2, 1.2, "veg"),
+  ing("cherrytomaat", "Cherrytomaat", 20, 1, 4, 0.2, 1.2, "veg"),
+  ing("komkommer", "Komkommer", 12, 0.6, 2, 0.1, 0.7, "veg"),
+  ing("rauwkost", "Sla & rauwkost", 20, 1.2, 3, 0.2, 1.5, "veg"),
+  ing("spinazie", "Spinazie", 23, 2.9, 1.4, 0.4, 2.2, "veg"),
+  ing("broccoli", "Broccoli", 34, 2.8, 7, 0.4, 2.6, "veg"),
+  ing("sperziebonen", "Sperziebonen", 31, 1.8, 7, 0.2, 2.7, "veg"),
+  ing("paprika", "Paprika", 26, 1, 6, 0.3, 1.7, "veg"),
+  ing("ui", "Ui", 40, 1.1, 9, 0.1, 1.7, "veg"),
+  ing("bieslook", "Bieslook", 30, 3, 4, 0.7, 2.5, "veg"),
+  // Vetten & smeersels
+  ing("hummus", "Hummus", 166, 8, 14, 10, 4, "fat"),
+  ing("olijfolie", "Olijfolie", 884, 0, 0, 100, 0, "fat"),
+  // Overig
+  ing("honing", "Honing", 304, 0.3, 82, 0, 0, "other"),
+  ing("kaneel", "Kaneel", 247, 4, 81, 1.2, 53, "other"),
+  ing("cacaopoeder", "Cacaopoeder (puur)", 350, 20, 12, 21, 30, "other"),
+  ing("teriyakisaus", "Teriyakisaus", 130, 5, 23, 0, 0, "other"),
+  ing("currypasta", "Currypasta", 150, 3, 10, 11, 2, "other"),
+  ing("kokosmelk-light", "Kokosmelk light", 73, 0.7, 1.6, 7, 0, "other"),
+  ing("vanille-extract", "Vanille-extract", 250, 0.1, 13, 0.1, 0, "other"),
+  ing("zwarte-peper", "Zwarte peper", 255, 10, 64, 3, 25, "other")
+];
+function seedIngredientsById() {
+  const map = {};
+  for (const item of SEED_INGREDIENTS) map[item.id] = item;
+  return map;
+}
+function meal(code, name, description, eligibleSlots, temperature, portability, digestionSpeed, caseinDominant, prepMinutes, family, rationaleShort, rationale, rows) {
+  return {
+    id: code,
+    code,
+    name,
+    description,
+    eligibleSlots,
+    temperature,
+    portability,
+    digestionSpeed,
+    caseinDominant,
+    prepMinutes,
+    family,
+    rationale,
+    rationaleShort,
+    ingredients: rows.map(([ingredientId, grams, role]) => ({ ingredientId, grams, role }))
+  };
+}
+var BF = ["BREAK_FAST"];
+var SN = ["SNACK"];
+var DI = ["DINNER"];
+var CL = ["CLOSE"];
+var SEED_MEALS = [
+  // ---------- BREAK_FAST (lunch, altijd koud) ----------
+  meal(
+    "b01",
+    "De kwarkbak",
+    "400 g magere kwark met banaan, walnoten en kaneel.",
+    BF,
+    "cold",
+    "portable",
+    "slow",
+    true,
+    3,
+    "kwark",
+    "44 g eiwit voor 452 kcal \u2014 je referentie.",
+    `40 gram eiwit voor 215 kcal \u2014 de beste eiwit/calorie-verhouding in je hele bibliotheek. De banaan levert koolhydraten voor je middag, de 20 gram walnoot is je dagelijkse omega-3-basis. Alles wat je hierboven kiest, wordt hieraan afgemeten.`,
+    [
+      ["magere-kwark", 400, "primary"],
+      ["walnoot", 20, "primary"],
+      ["banaan", 120, "supporting"],
+      ["kaneel", 2, "optional"]
+    ]
+  ),
+  meal(
+    "b02",
+    "Kwark met blauwe bessen en amandel",
+    "400 g magere kwark met blauwe bessen en amandelen.",
+    BF,
+    "cold",
+    "portable",
+    "slow",
+    true,
+    3,
+    "kwark",
+    "44 g eiwit, 50 kcal lichter dan de kwarkbak.",
+    `Bessen in plaats van banaan scheelt 50 kcal en levert meer vezels. Kies deze op rustdagen, waar je de koolhydraten van een banaan minder nodig hebt.`,
+    [
+      ["magere-kwark", 400, "primary"],
+      ["amandel", 15, "primary"],
+      ["blauwe-bessen", 100, "supporting"]
+    ]
+  ),
+  meal(
+    "b03",
+    "Kwark-kefir smoothie",
+    "Kwark, kefir en banaan, geblend tot een drinkbare shake.",
+    BF,
+    "cold",
+    "on_the_go",
+    "fast",
+    true,
+    4,
+    "smoothie",
+    "36 g eiwit, drinkbaar \u2014 jouw shake zonder poeder.",
+    `Jouw shake, zonder poeder. Maandagavond blenden, in een fles, mee naar de gym. Drinkbaar, dus je krijgt het binnen terwijl je nog aan het afkoelen bent. 36 gram eiwit uit echte kwark \u2014 meer dan de meeste wheyshakes. De banaan levert de snelle koolhydraten, en d\xE1t is na een nuchtere sessie het meest tijdgevoelige deel.`,
+    [
+      ["magere-kwark", 300, "primary"],
+      ["kefir", 150, "supporting"],
+      ["banaan", 120, "supporting"],
+      ["kaneel", 2, "optional"]
+    ]
+  ),
+  meal(
+    "b04",
+    "Kwarkbak met havermout",
+    "400 g magere kwark met havermout, banaan en wat walnoot.",
+    // 10 g walnoot i.p.v. 15 uit de spec: zo blijft het vet ≤ 12 g en past hij
+    // in de nuchtere-krachtdag-filter waarvoor hij bedoeld is.
+    BF,
+    "cold",
+    "portable",
+    "fast",
+    true,
+    4,
+    "kwark",
+    "48 g eiwit plus havermout \u2014 voor na de nuchtere training.",
+    `Extra koolhydraten via havermout. Dit is je lunch n\xE1 een nuchtere krachttraining: je spierglycogeen is leeg en dit is precies het moment waarop koolhydraten het best worden opgenomen.`,
+    [
+      ["magere-kwark", 400, "primary"],
+      ["havermout", 40, "primary"],
+      ["banaan", 120, "supporting"],
+      ["walnoot", 10, "supporting"]
+    ]
+  ),
+  meal(
+    "b05",
+    "De eiwit-boterham",
+    "Drie sneetjes volkoren met h\xFCttenk\xE4se, gekookte eieren en pindakaas.",
+    BF,
+    "cold",
+    "portable",
+    "medium",
+    false,
+    8,
+    "bread",
+    "38 g eiwit voor 572 kcal \u2014 brood mag, maar het kost wat.",
+    `Brood mag, maar je betaalt ervoor: 38 gram eiwit voor 572 kcal, tegen 44 gram voor 452 kcal bij de kwarkbak. Prima een of twee keer per week als je zin hebt in brood \u2014 niet als dagelijkse standaard. Let op: maximaal \xE9\xE9n sneetje met pindakaas, afgestreken lepel.`,
+    [
+      ["huttenkase", 100, "primary"],
+      ["ei", 110, "primary"],
+      ["volkorenbrood", 105, "supporting"],
+      ["pindakaas", 15, "supporting"]
+    ]
+  ),
+  meal(
+    "b06",
+    "Tonijnboterham",
+    "Drie sneetjes volkoren met tonijn, h\xFCttenk\xE4se, augurk en tomaat.",
+    BF,
+    "cold",
+    "portable",
+    "medium",
+    false,
+    6,
+    "bread",
+    "38 g eiwit voor 379 kcal \u2014 de magerste boterham.",
+    `38 gram eiwit uit een blik tonijn en drie sneetjes volkoren, voor bijna 200 kcal minder dan de eiwit-boterham \u2014 tonijn op water is vrijwel vetvrij. De augurk en tomaat houden het fris zonder iets te kosten. Goed mee te nemen naar kantoor.`,
+    [
+      ["tonijn", 100, "primary"],
+      ["volkorenbrood", 105, "supporting"],
+      ["huttenkase", 30, "supporting"],
+      ["augurk", 30, "optional"],
+      ["tomaat", 50, "optional"]
+    ]
+  ),
+  meal(
+    "b07",
+    "Skyr met granola en aardbeien",
+    "400 g skyr met een handje granola en verse aardbeien.",
+    BF,
+    "cold",
+    "portable",
+    "medium",
+    true,
+    3,
+    "skyr",
+    "48 g eiwit voor 435 kcal \u2014 de granola is de traktatie.",
+    `Skyr zit qua eiwit nog boven kwark: 11 gram per 100. De granola is hier de traktatie \u2014 30 gram levert 135 kcal, dus niet bijstrooien. Met de aardbeien kom je op 48 gram eiwit voor zo'n 435 kcal.`,
+    [
+      ["skyr", 400, "primary"],
+      ["granola", 30, "supporting"],
+      ["aardbeien", 150, "supporting"]
+    ]
+  ),
+  meal(
+    "b08",
+    "H\xFCttenk\xE4se-crackers met gerookte zalm",
+    "Vier volkoren crackers met h\xFCttenk\xE4se en gerookte zalm.",
+    BF,
+    "cold",
+    "portable",
+    "medium",
+    false,
+    5,
+    "huttenkase",
+    "40 g eiwit voor 447 kcal, in vijf minuten.",
+    `Gerookte zalm brengt vet mee (10 gram per 100), dus de portie blijft bewust bescheiden; de h\xFCttenk\xE4se doet het eiwitwerk. Samen 40 gram eiwit voor zo'n 445 kcal, en in vijf minuten op de crackers gelegd.`,
+    [
+      ["huttenkase", 150, "primary"],
+      ["gerookte-zalm", 70, "primary"],
+      ["volkoren-cracker", 40, "supporting"]
+    ]
+  ),
+  meal(
+    "b09",
+    "Kipsalade met edamame",
+    "Kipfilet en edamame op een bak rauwkost, met cashews en olijfolie.",
+    BF,
+    "cold",
+    "portable",
+    "medium",
+    false,
+    10,
+    "veg",
+    "49 g eiwit zonder zuivel of brood.",
+    `Een lunch zonder zuivel of brood: kip en edamame samen goed voor zo'n 49 gram eiwit. Edamame levert als een van de weinige peulvruchten serieus eiwit \xE9n vezels. De cashews gaan van je notenbudget af \u2014 10 gram, bewust bescheiden.`,
+    [
+      ["kipfilet", 110, "primary"],
+      ["edamame", 100, "primary"],
+      ["rauwkost", 100, "supporting"],
+      ["cashew", 10, "supporting"],
+      ["olijfolie", 7, "optional"]
+    ]
+  ),
+  meal(
+    "b10",
+    "Eiersalade-boterham",
+    "Drie sneetjes volkoren met eiersalade van gekookt ei en h\xFCttenk\xE4se.",
+    BF,
+    "cold",
+    "portable",
+    "medium",
+    false,
+    8,
+    "egg",
+    "38 g eiwit \u2014 brooddag zonder pindakaas.",
+    `Drie eieren leveren 19 gram eiwit maar ook 15 gram vet; de h\xFCttenk\xE4se trekt het totaal naar 38 gram zonder veel calorie\xEBn toe te voegen. Kies deze als je zin hebt in brood en de kwarkbak je de neus uit komt.`,
+    [
+      ["ei", 165, "primary"],
+      ["huttenkase", 75, "primary"],
+      ["volkorenbrood", 105, "supporting"],
+      ["bieslook", 5, "optional"]
+    ]
+  ),
+  meal(
+    "b11",
+    "Kipfilet-wrap",
+    "Volkoren wrap met kipfilet, hummus, sla en tomaat.",
+    BF,
+    "cold",
+    "on_the_go",
+    "medium",
+    false,
+    7,
+    "bread",
+    "47 g eiwit voor 439 kcal, eet uit de hand.",
+    `Meeneembaar zonder koelkastmoment: wrap, kip, hummus. 47 gram eiwit voor zo'n 440 kcal. De hummus vervangt boter en houdt de boel bij elkaar \u2014 40 gram is de maat.`,
+    [
+      ["kipfilet", 120, "primary"],
+      ["volkoren-wrap", 62, "supporting"],
+      ["hummus", 40, "supporting"],
+      ["rauwkost", 30, "supporting"],
+      ["tomaat", 40, "optional"]
+    ]
+  ),
+  meal(
+    "b12",
+    "Griekse yoghurt met noten en honing",
+    "400 g Griekse yoghurt 0% met walnoten en een theelepel honing.",
+    BF,
+    "cold",
+    "portable",
+    "medium",
+    true,
+    2,
+    "yoghurt",
+    "43 g eiwit voor 388 kcal, klaar in twee minuten.",
+    `Griekse yoghurt 0% is qua cijfers vrijwel kwark: 10 gram eiwit per 100 voor 59 kcal. De walnoten zijn je omega-3-basis en gaan van het notenbudget af; de honing is \xE9\xE9n theelepel \u2014 meer wordt vloeibare suiker.`,
+    [
+      ["griekse-yoghurt", 400, "primary"],
+      ["walnoot", 20, "primary"],
+      ["honing", 7, "optional"]
+    ]
+  ),
+  // ---------- SNACK (eiwitmoment) ----------
+  meal(
+    "s01",
+    "Kwark met blauwe bessen",
+    "250 g magere kwark met 100 g blauwe bessen.",
+    SN,
+    "cold",
+    "portable",
+    "medium",
+    true,
+    2,
+    "kwark",
+    "26 g eiwit voor 192 kcal \u2014 de standaardsnack.",
+    `26 gram eiwit voor 192 kcal, en de bessen brengen vezels en iets zoets mee. De standaardsnack waar de rest van deze lijst aan wordt afgemeten.`,
+    [
+      ["magere-kwark", 250, "primary"],
+      ["blauwe-bessen", 100, "supporting"]
+    ]
+  ),
+  meal(
+    "s02",
+    "Tonijn met rijstwafels",
+    "Een blik tonijn op water met drie rijstwafels.",
+    SN,
+    "cold",
+    "portable",
+    "fast",
+    false,
+    3,
+    "fish",
+    "26 g eiwit, bijna geen vet \u2014 ligt niet op je maag.",
+    `Mager en snel verteerbaar: 26 gram eiwit voor 172 kcal, vrijwel zonder vet of vezels. Daarom ook geschikt vlak v\xF3\xF3r inspanning \u2014 het ligt niet op je maag.`,
+    [
+      ["tonijn", 100, "primary"],
+      ["rijstwafel", 21, "supporting"]
+    ]
+  ),
+  meal(
+    "s03",
+    "H\xFCttenk\xE4se met tomaat en peper",
+    "200 g h\xFCttenk\xE4se met tomaat en flink wat zwarte peper.",
+    SN,
+    "cold",
+    "portable",
+    "medium",
+    true,
+    2,
+    "huttenkase",
+    "25 g eiwit, hartig in plaats van zoet.",
+    `H\xFCttenk\xE4se is iets vetter dan kwark (4 gram per 100) maar je eet het hartig, met een vork \u2014 dat telt als variatie. 25 gram eiwit voor zo'n 200 kcal.`,
+    [
+      ["huttenkase", 200, "primary"],
+      ["tomaat", 60, "supporting"],
+      ["zwarte-peper", 1, "optional"]
+    ]
+  ),
+  meal(
+    "s04",
+    "Gekookte eieren met cherrytomaatjes",
+    "Drie gekookte eieren met een hand cherrytomaatjes.",
+    SN,
+    "cold",
+    "portable",
+    "medium",
+    false,
+    2,
+    "egg",
+    "20 g eiwit \u2014 kook ze op zondag voor drie dagen.",
+    `Drie eieren zijn 19 gram eiwit, maar ook 15 gram vet \u2014 daarom is dit een snack en geen dagelijkse standaard. Kook ze op zondag, dan liggen ze drie dagen klaar.`,
+    [
+      ["ei", 165, "primary"],
+      ["cherrytomaat", 100, "supporting"]
+    ]
+  ),
+  meal(
+    "s05",
+    "Skyr met kaneel",
+    "300 g skyr met kaneel.",
+    SN,
+    "cold",
+    "portable",
+    "fast",
+    true,
+    1,
+    "skyr",
+    "33 g eiwit voor 189 kcal \u2014 de dichtste eiwitsnack.",
+    `33 gram eiwit voor 189 kcal \u2014 de hoogste eiwitdichtheid van je snacklijst. Skyr is dikker dan kwark, dus het eet als iets. De kaneel kost niets.`,
+    [
+      ["skyr", 300, "primary"],
+      ["kaneel", 2, "optional"]
+    ]
+  ),
+  meal(
+    "s06",
+    "Kipfilet met komkommer en hummus",
+    "Plakjes kipfilet met komkommer en 40 g hummus om te dippen.",
+    SN,
+    "cold",
+    "portable",
+    "medium",
+    false,
+    4,
+    "meat",
+    "29 g eiwit voor 210 kcal.",
+    `Kipfilet met komkommer en hummus: 29 gram eiwit voor zo'n 210 kcal. De hummus is de smaakmaker \xE9n het vet \u2014 40 gram is de maat, het is geen dipbak.`,
+    [
+      ["kipfilet", 80, "primary"],
+      ["komkommer", 100, "supporting"],
+      ["hummus", 40, "supporting"]
+    ]
+  ),
+  meal(
+    "s07",
+    "Edamame",
+    "150 g gedopte edamame met wat zout.",
+    SN,
+    "cold",
+    "portable",
+    "medium",
+    false,
+    5,
+    "veg",
+    "18 g plantaardig eiwit plus 7,5 g vezels.",
+    `Het enige volledig plantaardige eiwitmoment in de lijst: 18 gram eiwit plus 7,5 gram vezels uit \xE9\xE9n kom edamame. Diepvries, vijf minuten, klaar.`,
+    [["edamame", 150, "primary"]]
+  ),
+  meal(
+    "s08",
+    "Kwark-kefir drink",
+    "250 g kwark losgeroerd met 100 ml kefir, drinkbaar.",
+    SN,
+    "cold",
+    "on_the_go",
+    "fast",
+    true,
+    2,
+    "smoothie",
+    "28 g eiwit, drinkbaar in twee minuten.",
+    `Drinkbare kwark: 28 gram eiwit voor 185 kcal, weg in twee minuten. Handig op dagen dat een bakje met een lepel te veel gedoe is \u2014 maar drink hem rustig, hij verzadigt minder dan dezelfde kwark met een lepel.`,
+    [
+      ["magere-kwark", 250, "primary"],
+      ["kefir", 100, "supporting"]
+    ]
+  ),
+  meal(
+    "s09",
+    "Rijstwafels met h\xFCttenk\xE4se en gerookte zalm",
+    "Twee rijstwafels belegd met h\xFCttenk\xE4se en gerookte zalm.",
+    SN,
+    "cold",
+    "portable",
+    "medium",
+    false,
+    4,
+    "fish",
+    "26 g eiwit voor 257 kcal.",
+    `Gerookte zalm op h\xFCttenk\xE4se: 26 gram eiwit voor zo'n 260 kcal. De zalm brengt het vet, de wafels het knapperige. Meer wafels toevoegen schiet niet op \u2014 het eiwit zit in de rest.`,
+    [
+      ["huttenkase", 100, "primary"],
+      ["gerookte-zalm", 60, "primary"],
+      ["rijstwafel", 14, "supporting"]
+    ]
+  ),
+  meal(
+    "s10",
+    "Griekse yoghurt met walnoot",
+    "300 g Griekse yoghurt 0% met 10 g walnoot.",
+    SN,
+    "cold",
+    "portable",
+    "medium",
+    true,
+    2,
+    "yoghurt",
+    "32 g eiwit; de walnoot gaat van je notenbudget af.",
+    `32 gram eiwit voor 242 kcal. De 10 gram walnoot gaat van je notenbudget af; op een rustdag houd je dan nog 20 gram over voor de rest van de dag.`,
+    [
+      ["griekse-yoghurt", 300, "primary"],
+      ["walnoot", 10, "supporting"]
+    ]
+  ),
+  meal(
+    "s11",
+    "Pistachenoten in dop met skyr",
+    "20 g pistachenoten in de dop, met 250 g skyr.",
+    SN,
+    "cold",
+    "portable",
+    "medium",
+    true,
+    3,
+    "skyr",
+    "32 g eiwit; de doppen zijn je ingebouwde teller.",
+    `Pistachenoten met dop dwingen je af te remmen: je moet ze pellen, dus je eet langzamer, en de doppen zijn een zichtbare teller. De skyr doet het eiwitwerk. Let op je notenbudget \u2014 deze 20 gram gaat eraf.`,
+    [
+      ["pistache", 20, "primary"],
+      ["skyr", 250, "primary"]
+    ]
+  ),
+  meal(
+    "s12",
+    "Kipfilet met rauwkost",
+    "150 g kipfilet met een bak rauwkost.",
+    SN,
+    "cold",
+    "portable",
+    "medium",
+    false,
+    4,
+    "meat",
+    "48 g eiwit \u2014 bijna een halve maaltijd.",
+    `De zwaarste eiwitsnack in de lijst: 48 gram voor zo'n 270 kcal. Kies deze op dagen dat je bij lunch of diner tekortkomt \u2014 het is bijna een halve maaltijd.`,
+    [
+      ["kipfilet", 150, "primary"],
+      ["rauwkost", 100, "supporting"]
+    ]
+  ),
+  // ---------- DINNER ----------
+  meal(
+    "d01",
+    "Zalmfilet met zoete aardappel en broccoli",
+    "Gebakken zalmfilet met gekookte zoete aardappel en broccoli.",
+    DI,
+    "warm",
+    "home_only",
+    "slow",
+    false,
+    25,
+    "fish",
+    "46 g eiwit plus je omega-3 van de week.",
+    `Zalm is je vette vis van de week: 36 gram eiwit plus de omega-3 die je uit noten niet haalt (EPA/DHA in plaats van ALA). De zoete aardappel vult je glycogeen aan, de broccoli doet de vezels. Rond de 620 kcal \u2014 een volwaardige herstelmaaltijd.`,
+    [
+      ["zalmfilet", 180, "primary"],
+      ["zoete-aardappel", 200, "supporting"],
+      ["broccoli", 200, "supporting"]
+    ]
+  ),
+  meal(
+    "d02",
+    "Kipfilet met rijst en roergebakken groenten",
+    "Kipfilet met rijst en roergebakken paprika en ui.",
+    DI,
+    "warm",
+    "home_only",
+    "slow",
+    false,
+    20,
+    "meat",
+    "62 g eiwit voor 621 kcal \u2014 het werkpaard.",
+    `Het werkpaard: 62 gram eiwit voor zo'n 620 kcal. Kip met rijst is de makkelijkste manier om je grootste eiwitmoment te halen zonder over je calorieband te gaan.`,
+    [
+      ["kipfilet", 180, "primary"],
+      ["rijst", 180, "supporting"],
+      ["paprika", 100, "supporting"],
+      ["ui", 50, "optional"],
+      ["olijfolie", 5, "optional"]
+    ]
+  ),
+  meal(
+    "d03",
+    "Bolognese van mager gehakt met volkoren pasta",
+    "Tomatensaus met 5%-gehakt op volkoren pasta.",
+    DI,
+    "warm",
+    "home_only",
+    "slow",
+    false,
+    30,
+    "meat",
+    "55 g eiwit en ruim 10 g vezels.",
+    `Mager gehakt (5%) scheelt tegenover gewoon gehakt zo'n 10 gram vet per 100. Met volkoren pasta kom je op 55 gram eiwit en ruim 10 gram vezels. Maak dubbele saus \u2014 die is morgen beter.`,
+    [
+      ["rundergehakt-mager", 200, "primary"],
+      ["volkoren-pasta", 200, "supporting"],
+      ["tomaat", 150, "supporting"],
+      ["ui", 50, "optional"],
+      ["olijfolie", 5, "optional"]
+    ]
+  ),
+  meal(
+    "d04",
+    "Kabeljauw met aardappel en spinazie",
+    "Gestoomde kabeljauw met gekookte aardappelen en spinazie.",
+    DI,
+    "warm",
+    "home_only",
+    "medium",
+    false,
+    25,
+    "fish",
+    "50 g eiwit voor maar 488 kcal \u2014 het lichtste diner.",
+    `De lichtste van je diners: 50 gram eiwit voor zo'n 490 kcal. Kabeljauw is vrijwel vetvrij, dus dit is de keuze op dagen dat lunch of snack al zwaar uitvielen.`,
+    [
+      ["kabeljauw", 220, "primary"],
+      ["aardappel", 250, "supporting"],
+      ["spinazie", 200, "supporting"],
+      ["olijfolie", 5, "optional"]
+    ]
+  ),
+  meal(
+    "d05",
+    "Kalkoen-stirfry met paprika en rijst",
+    "Reepjes kalkoenfilet gewokt met paprika, geserveerd met rijst.",
+    DI,
+    "warm",
+    "home_only",
+    "slow",
+    false,
+    20,
+    "meat",
+    "62 g eiwit uit het magerste vlees dat je hebt.",
+    `Kalkoenfilet is nog magerder dan kip: 29 gram eiwit per 100 voor 135 kcal. Met rijst en paprika een snelle wok van zo'n 590 kcal en 62 gram eiwit.`,
+    [
+      ["kalkoenfilet", 190, "primary"],
+      ["rijst", 200, "supporting"],
+      ["paprika", 100, "supporting"],
+      ["olijfolie", 5, "optional"]
+    ]
+  ),
+  meal(
+    "d06",
+    "Linzencurry met kip",
+    "Curry van linzen en kipfilet in lichte kokosmelk, met tomaat.",
+    DI,
+    "warm",
+    "home_only",
+    "slow",
+    false,
+    30,
+    "meat",
+    "61 g eiwit, dierlijk \xE9n plantaardig in \xE9\xE9n pan.",
+    `Linzen plus kip: dierlijk en plantaardig eiwit in \xE9\xE9n pan, samen 61 gram, plus de vezels die in de rest van je dag schaars zijn. De lichte kokosmelk houdt de curry binnen de band \u2014 de gewone verdubbelt het vet.`,
+    [
+      ["kipfilet", 130, "primary"],
+      ["linzen", 200, "primary"],
+      ["kokosmelk-light", 100, "supporting"],
+      ["tomaat", 100, "supporting"],
+      ["currypasta", 20, "optional"]
+    ]
+  ),
+  meal(
+    "d07",
+    "Biefstuk met aardappel en sperziebonen",
+    "Mager gebakken biefstuk met gekookte aardappelen en sperziebonen.",
+    DI,
+    "warm",
+    "home_only",
+    "slow",
+    false,
+    25,
+    "meat",
+    "60 g eiwit plus ijzer en B12.",
+    `Magere biefstuk: 51 gram eiwit en goed opneembaar ijzer en B12. Rond de 620 kcal met aardappel en sperziebonen. Geen saus nodig.`,
+    [
+      ["biefstuk", 190, "primary"],
+      ["aardappel", 250, "supporting"],
+      ["sperziebonen", 200, "supporting"]
+    ]
+  ),
+  meal(
+    "d08",
+    "Garnalen-roerbak met noedels",
+    "Garnalen gewokt met paprika en noedels.",
+    DI,
+    "warm",
+    "home_only",
+    "medium",
+    false,
+    15,
+    "fish",
+    "53 g eiwit, in een kwartier op tafel.",
+    `Garnalen zijn extreem mager: 24 gram eiwit per 100 voor 99 kcal. Met noedels en paprika een roerbak van zo'n 525 kcal en 53 gram eiwit, in een kwartier op tafel.`,
+    [
+      ["garnalen", 180, "primary"],
+      ["noedels", 200, "supporting"],
+      ["paprika", 100, "supporting"],
+      ["olijfolie", 5, "optional"]
+    ]
+  ),
+  meal(
+    "d09",
+    "Grote omelet met kip en groente",
+    "Omelet van vier eieren, gevuld met kipfilet, paprika en tomaat.",
+    DI,
+    "warm",
+    "home_only",
+    "slow",
+    false,
+    15,
+    "egg",
+    '58 g eiwit \u2014 voor als er "niets in huis" is.',
+    `Vier eieren leveren 25 gram eiwit maar ook het vet; de kip erin trekt het totaal naar 58 gram zonder veel extra calorie\xEBn. De omelet voor dagen dat er "niets in huis" is \u2014 eieren zijn er altijd.`,
+    [
+      ["ei", 220, "primary"],
+      ["kipfilet", 100, "primary"],
+      ["paprika", 100, "supporting"],
+      ["tomaat", 100, "supporting"],
+      ["olijfolie", 8, "optional"]
+    ]
+  ),
+  meal(
+    "d10",
+    "Tofu-teriyaki met rijst en edamame",
+    "Gebakken tofu in teriyakisaus met rijst en edamame.",
+    DI,
+    "warm",
+    "home_only",
+    "slow",
+    false,
+    20,
+    "veg",
+    "39 g eiwit, vegetarisch \u2014 plan een stevige snack ernaast.",
+    `Het vegetarische diner: tofu en edamame samen 39 gram eiwit \u2014 minder dan je andere diners, dus plan er een zwaardere snack naast. Tofu neemt de teriyaki op als een spons; meer saus is niet nodig.`,
+    [
+      ["tofu", 250, "primary"],
+      ["edamame", 100, "primary"],
+      ["rijst", 200, "supporting"],
+      ["teriyakisaus", 30, "supporting"]
+    ]
+  ),
+  meal(
+    "d11",
+    "Magere gehaktballen met aardappelpuree en groente",
+    "Gehaktballen van 5%-gehakt, puree van aardappel met melk, sperziebonen.",
+    DI,
+    "warm",
+    "home_only",
+    "slow",
+    false,
+    30,
+    "meat",
+    "53 g eiwit \u2014 comfortfood binnen de band.",
+    `Gehaktballen van 5%-gehakt, puree van echte aardappel met melk in plaats van boter. Rond de 590 kcal en 53 gram eiwit \u2014 het comfortdiner dat binnen de calorieband blijft.`,
+    [
+      ["rundergehakt-mager", 200, "primary"],
+      ["aardappel", 250, "supporting"],
+      ["sperziebonen", 200, "supporting"],
+      ["halfvolle-melk", 50, "optional"],
+      ["ui", 30, "optional"]
+    ]
+  ),
+  meal(
+    "d12",
+    "Vis-traybake met zoete aardappel",
+    "Kabeljauw, zoete aardappel, paprika en ui van \xE9\xE9n bakplaat.",
+    DI,
+    "warm",
+    "home_only",
+    "slow",
+    false,
+    35,
+    "fish",
+    "46 g eiwit, \xE9\xE9n bakplaat, \xE9\xE9n afwas.",
+    `Alles op \xE9\xE9n bakplaat: witvis, zoete aardappel, paprika, olijfolie eroverheen en 25 minuten oven. Zo'n 540 kcal en 46 gram eiwit, en maar \xE9\xE9n ding om af te wassen.`,
+    [
+      ["kabeljauw", 220, "primary"],
+      ["zoete-aardappel", 250, "supporting"],
+      ["paprika", 100, "supporting"],
+      ["ui", 50, "optional"],
+      ["olijfolie", 10, "optional"]
+    ]
+  ),
+  // ---------- CLOSE (venster sluiten, altijd caseïne) ----------
+  meal(
+    "c01",
+    "Kwark met kaneel",
+    "400 g magere kwark met kaneel.",
+    CL,
+    "cold",
+    "home_only",
+    "slow",
+    true,
+    1,
+    "kwark",
+    "40 g case\xEFne voor 221 kcal \u2014 de standaardafsluiter.",
+    `40 gram case\xEFne voor 221 kcal \u2014 precies waar dit moment voor bestaat. Langzaam eiwit dat de komende 17 uur vasten overbrugt. De kaneel maakt het af zonder iets te kosten.`,
+    [
+      ["magere-kwark", 400, "primary"],
+      ["kaneel", 2, "optional"]
+    ]
+  ),
+  meal(
+    "c02",
+    "Kwark met blauwe bessen",
+    "400 g magere kwark met 100 g blauwe bessen.",
+    CL,
+    "cold",
+    "home_only",
+    "slow",
+    true,
+    2,
+    "kwark",
+    "41 g case\xEFne, plus bessen tegen de verveling.",
+    `Dezelfde 40 gram case\xEFne, plus 57 kcal aan bessen voor wie de kale kwark beu is. De vezels van de bessen zijn zo laat op de dag mooi meegenomen.`,
+    [
+      ["magere-kwark", 400, "primary"],
+      ["blauwe-bessen", 100, "supporting"]
+    ]
+  ),
+  meal(
+    "c03",
+    "Kwark met walnoot",
+    "350 g magere kwark met 10 g walnoot.",
+    CL,
+    "cold",
+    "home_only",
+    "slow",
+    true,
+    2,
+    "kwark",
+    "37 g case\xEFne; de walnoot vertraagt \u2014 hier een voordeel.",
+    `Iets minder kwark, 10 gram walnoot erbij \u2014 goed als je notenbudget nog ruimte heeft. Vet vertraagt de vertering, en vlak voor 17 uur vasten is dat hier juist een voordeel.`,
+    [
+      ["magere-kwark", 350, "primary"],
+      ["walnoot", 10, "supporting"]
+    ]
+  ),
+  meal(
+    "c04",
+    "Skyr naturel",
+    "400 g skyr naturel.",
+    CL,
+    "cold",
+    "home_only",
+    "medium",
+    true,
+    1,
+    "skyr",
+    "44 g case\xEFnedominant eiwit \u2014 kwark in een andere jas.",
+    `Skyr is net als kwark case\xEFnedominant, maar dikker en met 44 gram eiwit per 400 gram zelfs iets rijker. Voor wie kwark als afsluiter beu is: hetzelfde werk in een andere jas.`,
+    [["skyr", 400, "primary"]]
+  ),
+  meal(
+    "c05",
+    "Kwark-kefir drink",
+    "300 g kwark losgeroerd met 100 ml kefir, drinkbaar.",
+    CL,
+    "cold",
+    "home_only",
+    "fast",
+    true,
+    2,
+    "smoothie",
+    "33 g case\xEFne, drinkbaar \u2014 voor als het totaal al goed zit.",
+    `De drinkbare afsluiter: 33 gram case\xEFne, weg in een minuut. Iets minder eiwit dan de bakjes \u2014 kies hem op dagen dat je dagtotaal al goed zit.`,
+    [
+      ["magere-kwark", 300, "primary"],
+      ["kefir", 100, "supporting"]
+    ]
+  ),
+  meal(
+    "c06",
+    "Kwark met honing en kaneel",
+    "400 g magere kwark met een theelepel honing en kaneel.",
+    CL,
+    "cold",
+    "home_only",
+    "slow",
+    true,
+    1,
+    "kwark",
+    "40 g case\xEFne die als een toetje eet.",
+    `Een theelepel honing (21 kcal) maakt 400 gram kwark opeens een toetje. De goedkoopste truc in deze lijst: 40 gram case\xEFne die je met plezier eet.`,
+    [
+      ["magere-kwark", 400, "primary"],
+      ["honing", 7, "optional"],
+      ["kaneel", 2, "optional"]
+    ]
+  ),
+  meal(
+    "c07",
+    "Griekse yoghurt met vanille",
+    "400 g Griekse yoghurt 0% met vanille-extract.",
+    CL,
+    "cold",
+    "home_only",
+    "medium",
+    true,
+    1,
+    "yoghurt",
+    "40 g case\xEFnedominant eiwit voor 241 kcal.",
+    `Griekse yoghurt 0% met vanille: 40 gram case\xEFnedominant eiwit voor 241 kcal. Vanille-extract, geen vanillesuiker \u2014 dat scheelt niets qua smaak en alles qua suiker.`,
+    [
+      ["griekse-yoghurt", 400, "primary"],
+      ["vanille-extract", 2, "optional"]
+    ]
+  ),
+  meal(
+    "c08",
+    "H\xFCttenk\xE4se met peper",
+    "300 g h\xFCttenk\xE4se met zwarte peper.",
+    CL,
+    "cold",
+    "home_only",
+    "medium",
+    true,
+    1,
+    "huttenkase",
+    "36 g case\xEFne, hartig \u2014 voor wie geen zoet meer wil.",
+    `H\xFCttenk\xE4se is \xF3\xF3k case\xEFne: 36 gram voor 285 kcal. Iets vetter dan kwark, maar hartig in plaats van zoet \u2014 voor de avonden dat je geen zoete zuivel meer kunt zien.`,
+    [
+      ["huttenkase", 300, "primary"],
+      ["zwarte-peper", 1, "optional"]
+    ]
+  ),
+  meal(
+    "c09",
+    "Kwark met kaneel en cacao",
+    "400 g magere kwark met kaneel en pure cacaopoeder.",
+    CL,
+    "cold",
+    "home_only",
+    "slow",
+    true,
+    2,
+    "kwark",
+    "41 g case\xEFne als chocolade-toetje, 17 kcal extra.",
+    `Cacao \u2014 de pure poeder, geen chocolademelk \u2014 maakt er een chocolade-toetje van voor 17 kcal extra. Nog steeds 41 gram case\xEFne.`,
+    [
+      ["magere-kwark", 400, "primary"],
+      ["cacaopoeder", 5, "optional"],
+      ["kaneel", 2, "optional"]
+    ]
+  ),
+  meal(
+    "c10",
+    "Kwark met geraspte appel en kaneel",
+    "400 g magere kwark met een halve geraspte appel en kaneel.",
+    CL,
+    "cold",
+    "home_only",
+    "slow",
+    true,
+    3,
+    "kwark",
+    "40 g case\xEFne in de appeltaart-versie.",
+    `Geraspte appel met kaneel is de appeltaart-versie: 40 gram case\xEFne voor zo'n 260 kcal. Rasp de appel vers, anders wordt hij bruin en jij ontevreden.`,
+    [
+      ["magere-kwark", 400, "primary"],
+      ["appel", 75, "supporting"],
+      ["kaneel", 2, "optional"]
+    ]
+  ),
+  // ---------- Aanvullingen: nuchtere-krachtdag-lunches (fast, koud, vet ≤ 12 g) ----------
+  meal(
+    "x01",
+    "Skyr-banaan-honing shake",
+    "Skyr, banaan, melk en honing, geblend tot een shake.",
+    BF,
+    "cold",
+    "on_the_go",
+    "fast",
+    true,
+    4,
+    "smoothie",
+    "43 g eiwit, drinkbaar, 3 g vet.",
+    `Je nuchtere-trainingsshake zonder kwark: 43 gram eiwit uit skyr, drinkbaar in de auto naar kantoor. De banaan en honing zijn hier functioneel \u2014 na een lege training wil je juist snelle koolhydraten, en vet zit er amper in (3 gram).`,
+    [
+      ["skyr", 350, "primary"],
+      ["banaan", 120, "supporting"],
+      ["halfvolle-melk", 100, "supporting"],
+      ["honing", 10, "optional"]
+    ]
+  ),
+  meal(
+    "x02",
+    "Aardbei-kwarkshake",
+    "Kwark, aardbeien, melk en honing, geblend tot een shake.",
+    BF,
+    "cold",
+    "on_the_go",
+    "fast",
+    true,
+    4,
+    "smoothie",
+    "45 g eiwit voor 340 kcal, drinkbaar.",
+    `Aardbeien maken kwark drinkbaar zonder veel calorie\xEBn: 45 gram eiwit voor zo'n 340 kcal en nog geen 3 gram vet. Blend hem de avond ervoor \u2014 na een nuchtere sessie wil je niet nog staan snijden.`,
+    [
+      ["magere-kwark", 400, "primary"],
+      ["aardbeien", 150, "supporting"],
+      ["halfvolle-melk", 100, "supporting"],
+      ["honing", 10, "optional"]
+    ]
+  ),
+  meal(
+    "x03",
+    "Tonijn-rijstwafelbox",
+    "Anderhalf blik tonijn met vijf rijstwafels en augurk.",
+    BF,
+    "cold",
+    "portable",
+    "fast",
+    false,
+    5,
+    "fish",
+    "39 g eiwit, 2 g vet \u2014 overleeft elke sporttas.",
+    `Blik tonijn en rijstwafels overleven een sporttas: 39 gram eiwit en nog geen 2 gram vet, dus je maag is er snel vanaf. De rijstwafels zijn hier de snelle koolhydraten, geen dieetgimmick.`,
+    [
+      ["tonijn", 150, "primary"],
+      ["rijstwafel", 35, "supporting"],
+      ["augurk", 30, "optional"]
+    ]
+  ),
+  meal(
+    "x04",
+    "Garnalen-rijstbowl",
+    "Garnalen op witte rijst met komkommer, koud te eten.",
+    BF,
+    "cold",
+    "portable",
+    "fast",
+    false,
+    8,
+    "fish",
+    "42 g eiwit en 40+ g snelle koolhydraten, 1 g vet.",
+    `Garnalen met witte rijst: 42 gram eiwit en ruim 40 gram snelle koolhydraten voor je lege spierglycogeen, met net 1 gram vet. Koud uit de meal-prep-bak prima te eten.`,
+    [
+      ["garnalen", 150, "primary"],
+      ["rijst", 200, "supporting"],
+      ["komkommer", 100, "supporting"]
+    ]
+  ),
+  meal(
+    "x05",
+    "Kipfilet-rijstbowl",
+    "Kipfilet op rijst met paprika en een lepel teriyaki, koud te eten.",
+    BF,
+    "cold",
+    "portable",
+    "fast",
+    false,
+    8,
+    "meat",
+    "47 g eiwit, 5 g vet \u2014 meal-prep-klassieker.",
+    `Meal-prep-klassieker, koud te eten: 47 gram eiwit, en de rijst vult aan wat de training opmaakte. Mager (5 gram vet), dus snel je maag uit en je spieren in.`,
+    [
+      ["kipfilet", 130, "primary"],
+      ["rijst", 200, "supporting"],
+      ["paprika", 50, "supporting"],
+      ["teriyakisaus", 20, "optional"]
+    ]
+  ),
+  meal(
+    "x06",
+    "Kalkoen-rijstwafelbox",
+    "Kalkoenfilet met vier rijstwafels en tomaat.",
+    BF,
+    "cold",
+    "portable",
+    "fast",
+    false,
+    5,
+    "meat",
+    "46 g eiwit voor 320 kcal, bijna vetvrij.",
+    `Kalkoen is de magerste vleesoptie die je hebt (1,5 gram vet per 100): 46 gram eiwit voor zo'n 320 kcal. Rijstwafels in plaats van brood houden vet en vezels laag \u2014 precies wat je na een nuchtere sessie wilt.`,
+    [
+      ["kalkoenfilet", 150, "primary"],
+      ["rijstwafel", 28, "supporting"],
+      ["tomaat", 50, "optional"]
+    ]
+  ),
+  meal(
+    "x07",
+    "Skyr-bowl met banaan en honing",
+    "400 g skyr met banaan en een theelepel honing.",
+    BF,
+    "cold",
+    "portable",
+    "fast",
+    true,
+    3,
+    "skyr",
+    "45 g eiwit, 1 g vet \u2014 de lepelversie van de shake.",
+    `De lepelversie van de trainingsshake: 45 gram eiwit uit skyr, banaan en honing voor de snelle koolhydraten, en amper 1 gram vet. Werkt ook als je blender nog vies is.`,
+    [
+      ["skyr", 400, "primary"],
+      ["banaan", 120, "supporting"],
+      ["honing", 7, "optional"]
+    ]
+  ),
+  meal(
+    "x08",
+    "Griekse yoghurt met banaan en honing",
+    "400 g Griekse yoghurt 0% met banaan en een theelepel honing.",
+    BF,
+    "cold",
+    "portable",
+    "fast",
+    true,
+    3,
+    "yoghurt",
+    "41 g eiwit voor 362 kcal, vrijwel vetvrij.",
+    `Zelfde opzet als de skyr-bowl, andere smaak: 41 gram eiwit voor zo'n 360 kcal, vrijwel vetvrij. Yoghurt 0% is dunner dan skyr \u2014 sneller weg, en na een nuchtere training is dat geen nadeel.`,
+    [
+      ["griekse-yoghurt", 400, "primary"],
+      ["banaan", 120, "supporting"],
+      ["honing", 7, "optional"]
+    ]
+  ),
+  meal(
+    "x09",
+    "Skyr met aardbeien en honing",
+    "400 g skyr met aardbeien en een theelepel honing.",
+    BF,
+    "cold",
+    "portable",
+    "fast",
+    true,
+    3,
+    "skyr",
+    "45 g eiwit voor 321 kcal \u2014 de lichtere skyr-bowl.",
+    `Aardbeien in plaats van banaan: zo'n 60 kcal minder en iets minder koolhydraten. Kies de banaan-versie direct na kracht; deze mag ook op de lichtere dagen.`,
+    [
+      ["skyr", 400, "primary"],
+      ["aardbeien", 150, "supporting"],
+      ["honing", 7, "optional"]
+    ]
+  ),
+  // ---------- Aanvullingen: pre-workout-snacks (fast, weinig vet/vezels) ----------
+  meal(
+    "x10",
+    "Skyr met banaan",
+    "250 g skyr met een banaan.",
+    SN,
+    "cold",
+    "portable",
+    "fast",
+    true,
+    2,
+    "skyr",
+    "29 g eiwit plus snelle koolhydraten, <1 g vet.",
+    `Skyr met banaan: 29 gram eiwit en snelle koolhydraten, samen zo'n 260 kcal met minder dan 1 gram vet. Licht genoeg om er 45 minuten later op te tillen.`,
+    [
+      ["skyr", 250, "primary"],
+      ["banaan", 120, "supporting"]
+    ]
+  ),
+  meal(
+    "x11",
+    "Rijstwafels met kipfilet",
+    "Drie rijstwafels met plakjes kipfilet.",
+    SN,
+    "cold",
+    "portable",
+    "fast",
+    false,
+    3,
+    "meat",
+    "27 g eiwit, bijna geen vet of vezels.",
+    `Kip op rijstwafels: 27 gram eiwit, bijna geen vet of vezels \u2014 dit zit je niet in de weg in de sportschool. Ook koud gewoon goed.`,
+    [
+      ["kipfilet", 80, "primary"],
+      ["rijstwafel", 21, "supporting"]
+    ]
+  ),
+  meal(
+    "x12",
+    "Garnalen-cocktailcup",
+    "Gekookte garnalen met komkommer.",
+    SN,
+    "cold",
+    "portable",
+    "fast",
+    false,
+    4,
+    "fish",
+    "29 g eiwit voor maar 128 kcal \u2014 de lichtste optie.",
+    `Garnalen met komkommer: 29 gram eiwit voor maar 128 kcal, het lichtste eiwitmoment in de lijst. Voor dagen dat je calorieband knelt maar je eiwit nog moet.`,
+    [
+      ["garnalen", 120, "primary"],
+      ["komkommer", 80, "supporting"]
+    ]
+  ),
+  meal(
+    "x13",
+    "Yoghurtdrink met honing",
+    "Griekse yoghurt 0% losgeroerd met melk en honing, drinkbaar.",
+    SN,
+    "cold",
+    "on_the_go",
+    "fast",
+    true,
+    2,
+    "yoghurt",
+    "34 g eiwit, drinkbaar, met snelle suiker voor het tillen.",
+    `Drinkbaar en mager: 34 gram eiwit, en de honing levert de snelle suiker die je drie kwartier voor het tillen wilt. Geen vezels die in de weg zitten.`,
+    [
+      ["griekse-yoghurt", 300, "primary"],
+      ["halfvolle-melk", 100, "supporting"],
+      ["honing", 10, "optional"]
+    ]
+  ),
+  meal(
+    "x14",
+    "Banaan met kwarkdip",
+    "Een banaan met 200 g kwark als dip, snuf kaneel.",
+    SN,
+    "cold",
+    "portable",
+    "fast",
+    true,
+    2,
+    "kwark",
+    "21 g eiwit plus snelle koolhydraten \u2014 de lichte pre-workout.",
+    `De banaan is hier de hoofdact, de kwark de dip: 21 gram eiwit en snelle koolhydraten. De lichtste pre-workout-optie die toch iets substantieels biedt.`,
+    [
+      ["magere-kwark", 200, "primary"],
+      ["banaan", 120, "primary"],
+      ["kaneel", 2, "optional"]
+    ]
+  ),
+  meal(
+    "x15",
+    "Kwark met honing",
+    "250 g magere kwark met een theelepel honing.",
+    SN,
+    "cold",
+    "portable",
+    "fast",
+    true,
+    1,
+    "kwark",
+    "25 g eiwit voor 165 kcal, vrijwel vetvrij.",
+    `Kwark met een theelepel honing: 25 gram eiwit voor 165 kcal, vrijwel vetvrij. Simpeler wordt een pre-workout niet.`,
+    [
+      ["magere-kwark", 250, "primary"],
+      ["honing", 10, "optional"]
+    ]
+  ),
+  meal(
+    "x16",
+    "Skyr met aardbeien",
+    "250 g skyr met 100 g aardbeien.",
+    SN,
+    "cold",
+    "portable",
+    "fast",
+    true,
+    2,
+    "skyr",
+    "28 g eiwit voor 190 kcal, licht en fris.",
+    `Skyr met aardbeien: 28 gram eiwit voor 190 kcal, nauwelijks vet of vezels. Fris genoeg voor de zomer, licht genoeg voor de sportschool.`,
+    [
+      ["skyr", 250, "primary"],
+      ["aardbeien", 100, "supporting"]
+    ]
+  ),
+  meal(
+    "x17",
+    "Rijstwafels met kalkoenfilet",
+    "Twee rijstwafels met plakjes kalkoenfilet.",
+    SN,
+    "cold",
+    "portable",
+    "fast",
+    false,
+    3,
+    "meat",
+    "30 g eiwit voor 189 kcal, 2 g vet.",
+    `Kalkoen op rijstwafels: 30 gram eiwit voor 189 kcal met 2 gram vet. Magerder wordt vlees niet \u2014 en het verteert er ook naar.`,
+    [
+      ["kalkoenfilet", 100, "primary"],
+      ["rijstwafel", 14, "supporting"]
+    ]
+  ),
+  // ---------- Aanvullingen: CLOSE-varianten (alle caseïnedominant) ----------
+  meal(
+    "x20",
+    "Skyr met blauwe bessen",
+    "350 g skyr met 100 g blauwe bessen.",
+    CL,
+    "cold",
+    "home_only",
+    "medium",
+    true,
+    2,
+    "skyr",
+    "39 g case\xEFnedominant eiwit voor 278 kcal.",
+    `De skyr-variant van de bessen-afsluiter: 39 gram case\xEFnedominant eiwit voor 278 kcal. Voor de rotatie \u2014 tien keer per week kwark gaat vervelen.`,
+    [
+      ["skyr", 350, "primary"],
+      ["blauwe-bessen", 100, "supporting"]
+    ]
+  ),
+  meal(
+    "x21",
+    "Skyr met kaneel",
+    "350 g skyr met kaneel.",
+    CL,
+    "cold",
+    "home_only",
+    "medium",
+    true,
+    1,
+    "skyr",
+    "39 g case\xEFnedominant eiwit voor 225 kcal.",
+    `350 gram skyr met kaneel: 39 gram case\xEFnedominant eiwit voor 225 kcal \u2014 na de kale kwark de magerste afsluiter die je hebt.`,
+    [
+      ["skyr", 350, "primary"],
+      ["kaneel", 2, "optional"]
+    ]
+  ),
+  meal(
+    "x22",
+    "Griekse yoghurt met blauwe bessen",
+    "350 g Griekse yoghurt 0% met 100 g blauwe bessen.",
+    CL,
+    "cold",
+    "home_only",
+    "medium",
+    true,
+    2,
+    "yoghurt",
+    "36 g case\xEFnedominant eiwit voor 264 kcal.",
+    `De yoghurt-versie van kwark met bessen: 36 gram case\xEFnedominant eiwit voor 264 kcal. Yoghurt 0% is dunner dan kwark \u2014 sommige avonden is dat juist prettig.`,
+    [
+      ["griekse-yoghurt", 350, "primary"],
+      ["blauwe-bessen", 100, "supporting"]
+    ]
+  ),
+  meal(
+    "x23",
+    "H\xFCttenk\xE4se met cherrytomaat",
+    "275 g h\xFCttenk\xE4se met cherrytomaatjes en zwarte peper.",
+    CL,
+    "cold",
+    "home_only",
+    "medium",
+    true,
+    2,
+    "huttenkase",
+    "34 g case\xEFne, hartig \u2014 de tweede niet-zoete afsluiter.",
+    `De hartige afsluiter: h\xFCttenk\xE4se met cherrytomaten, 34 gram case\xEFne voor zo'n 280 kcal. Voor wie 's avonds geen zoete zuivel meer kan zien.`,
+    [
+      ["huttenkase", 275, "primary"],
+      ["cherrytomaat", 100, "supporting"],
+      ["zwarte-peper", 1, "optional"]
+    ]
+  ),
+  // ---------- Aanvullingen: energierijke varianten voor de calorieband ----------
+  meal(
+    "x30",
+    "XL kwarkbak met havermout",
+    "450 g kwark met 60 g havermout, banaan, walnoot en honing.",
+    // Net als b04 bewust 'fast': dit is de grote na-de-nuchtere-training-lunch.
+    BF,
+    "cold",
+    "portable",
+    "fast",
+    true,
+    5,
+    "kwark",
+    "55 g eiwit voor 656 kcal \u2014 de grote trainingslunch.",
+    `De XL-versie van de havermout-kwarkbak, voor na een zware nuchtere sessie: 55 gram eiwit en ruim 65 gram koolhydraten voor zo'n 655 kcal. De extra havermout en honing zijn geen luxe \u2014 dit is de lunch die je calorieband op trainingsdagen haalbaar maakt.`,
+    [
+      ["magere-kwark", 450, "primary"],
+      ["havermout", 60, "primary"],
+      ["banaan", 120, "supporting"],
+      ["walnoot", 8, "supporting"],
+      ["honing", 10, "optional"]
+    ]
+  ),
+  meal(
+    "x31",
+    "Dubbele kipfilet-wrap",
+    "Twee volkoren wraps met kipfilet, hummus, rauwkost en tomaat.",
+    BF,
+    "cold",
+    "portable",
+    "medium",
+    false,
+    10,
+    "bread",
+    "63 g eiwit voor 670 kcal \u2014 dicht het gat in \xE9\xE9n keer.",
+    `Twee wraps in plaats van \xE9\xE9n: 63 gram eiwit voor zo'n 670 kcal. Kies deze op dagen dat de teller om 13:00 al achterloopt \u2014 dit is een lunch die het gat in \xE9\xE9n keer dichttrekt.`,
+    [
+      ["kipfilet", 150, "primary"],
+      ["volkoren-wrap", 124, "supporting"],
+      ["hummus", 50, "supporting"],
+      ["rauwkost", 40, "supporting"],
+      ["tomaat", 50, "optional"]
+    ]
+  ),
+  meal(
+    "x33",
+    "Zalm-pastasalade XL",
+    "Volkoren pasta met zalmfilet, edamame, cherrytomaat en olijfolie.",
+    DI,
+    "either",
+    "home_only",
+    "slow",
+    false,
+    25,
+    "fish",
+    "67 g eiwit en 970 kcal \u2014 voor zware trainingsdagen.",
+    `Het grote diner: 67 gram eiwit en zo'n 970 kcal uit zalm, volkorenpasta en edamame. Op zware trainingsdagen is dit hoe je aan de 2200+ kcal komt zonder te snaaien; op rustdagen is hij te groot.`,
+    [
+      ["zalmfilet", 200, "primary"],
+      ["volkoren-pasta", 250, "supporting"],
+      ["edamame", 100, "primary"],
+      ["cherrytomaat", 100, "supporting"],
+      ["olijfolie", 10, "supporting"]
+    ]
+  ),
+  meal(
+    "x34",
+    "Kip-rijstschotel XL met olijfolie",
+    "Grote portie kipfilet met rijst, paprika, ui en olijfolie.",
+    DI,
+    "warm",
+    "home_only",
+    "slow",
+    false,
+    25,
+    "meat",
+    "78 g eiwit en 905 kcal \u2014 het grootste bord.",
+    `78 gram eiwit en ruim 900 kcal \u2014 het grootste bord in de bibliotheek. De olijfolie is hier bewust: op een zware trainingsdag heb je die calorie\xEBn nodig, anders haal je de band niet.`,
+    [
+      ["kipfilet", 220, "primary"],
+      ["rijst", 300, "supporting"],
+      ["paprika", 100, "supporting"],
+      ["olijfolie", 12, "supporting"],
+      ["ui", 50, "optional"]
+    ]
+  ),
+  meal(
+    "x35",
+    "Gehakt-rijstschotel",
+    "Mager gehakt met rijst, tomaat, paprika en olijfolie uit \xE9\xE9n pan.",
+    DI,
+    "warm",
+    "home_only",
+    "slow",
+    false,
+    25,
+    "meat",
+    "63 g eiwit voor 874 kcal, uit \xE9\xE9n pan.",
+    `Gehakt met rijst: 63 gram eiwit voor zo'n 875 kcal. E\xE9n pan, vier componenten, en het gat tussen 1800 en 2200 kcal is gedicht.`,
+    [
+      ["rundergehakt-mager", 250, "primary"],
+      ["rijst", 300, "supporting"],
+      ["tomaat", 150, "supporting"],
+      ["paprika", 100, "supporting"],
+      ["olijfolie", 10, "supporting"]
+    ]
+  ),
+  meal(
+    "x36",
+    "Volkoren pasta met tonijn en olijfolie",
+    "Twee blikken tonijn door volkoren pasta met tomaat, ui en olijfolie.",
+    DI,
+    "warm",
+    "home_only",
+    "slow",
+    false,
+    20,
+    "fish",
+    "69 g eiwit voor 817 kcal \u2014 het pantry-diner XL.",
+    `Pantry-diner XL: twee blikken tonijn, volkorenpasta en een flinke scheut olijfolie \u2014 69 gram eiwit voor zo'n 815 kcal. De olie is hier de calorieknop: 15 gram erbij of eraf is 130 kcal.`,
+    [
+      ["tonijn", 200, "primary"],
+      ["volkoren-pasta", 350, "supporting"],
+      ["tomaat", 150, "supporting"],
+      ["olijfolie", 15, "supporting"],
+      ["ui", 50, "optional"]
+    ]
+  ),
+  meal(
+    "x37",
+    "Tofu-groentecurry met edamame",
+    "Curry van tofu en edamame in lichte kokosmelk, met rijst.",
+    DI,
+    "warm",
+    "home_only",
+    "slow",
+    false,
+    25,
+    "veg",
+    "44 g plantaardig eiwit \u2014 het tweede veggie-diner.",
+    `Het tweede vegetarische diner: tofu en edamame, samen 44 gram eiwit. Minder dan een vleesdiner, dus plan hem op een dag waar de rest van je eiwit al ruim zit.`,
+    [
+      ["tofu", 250, "primary"],
+      ["edamame", 150, "primary"],
+      ["kokosmelk-light", 150, "supporting"],
+      ["rijst", 150, "supporting"],
+      ["currypasta", 25, "optional"]
+    ]
+  ),
+  meal(
+    "x38",
+    "Eierschotel met h\xFCttenk\xE4se en tomaat",
+    "Vier eieren in tomaat-paprikasaus, afgemaakt met h\xFCttenk\xE4se.",
+    DI,
+    "warm",
+    "home_only",
+    "slow",
+    false,
+    20,
+    "egg",
+    "48 g eiwit \u2014 het eierdiner zonder vlees of vis.",
+    `Eieren en h\xFCttenk\xE4se uit \xE9\xE9n pan: 48 gram eiwit voor zo'n 590 kcal. Het diner voor als vis noch vlees in huis is \u2014 eieren en h\xFCttenk\xE4se zijn er altijd.`,
+    [
+      ["ei", 220, "primary"],
+      ["huttenkase", 150, "primary"],
+      ["tomaat", 300, "supporting"],
+      ["paprika", 100, "supporting"],
+      ["ui", 50, "optional"],
+      ["olijfolie", 8, "optional"]
+    ]
+  ),
+  meal(
+    "x39",
+    "Kalkoen-omelet met spinazie",
+    "Omelet van drie eieren met kalkoenfilet, spinazie en tomaat.",
+    DI,
+    "warm",
+    "home_only",
+    "slow",
+    false,
+    15,
+    "egg",
+    "49 g eiwit voor ~490 kcal \u2014 het lichte eierdiner.",
+    `Drie eieren plus kalkoenfilet: 49 gram eiwit voor zo'n 490 kcal. Lichter dan de eierschotel, dus handig op dagen waarop lunch en snack al zwaar waren \u2014 je haalt je eiwit zonder je calorieband te raken.`,
+    [
+      ["ei", 165, "primary"],
+      ["kalkoenfilet", 100, "primary"],
+      ["spinazie", 150, "supporting"],
+      ["tomaat", 100, "supporting"],
+      ["olijfolie", 5, "optional"]
+    ]
+  ),
+  meal(
+    "x44",
+    "Linzen-dahl met edamame",
+    "Dahl van linzen en edamame in lichte kokosmelk, met rijst.",
+    DI,
+    "warm",
+    "home_only",
+    "slow",
+    false,
+    25,
+    "veg",
+    "41 g plantaardig eiwit \u2014 het derde veggie-diner.",
+    `Linzen en edamame samen: 41 gram plantaardig eiwit plus 14 gram vezels. Minder eiwit dan vlees of vis, dus plan hem op een dag waarop je zuivelmomenten het zware werk al doen \u2014 de vezels maken hem wel het meest verzadigende diner in de lijst.`,
+    [
+      ["linzen", 250, "primary"],
+      ["edamame", 150, "primary"],
+      ["kokosmelk-light", 150, "supporting"],
+      ["rijst", 150, "supporting"],
+      ["currypasta", 25, "optional"]
+    ]
+  ),
+  meal(
+    "x40",
+    "Boterham met h\xFCttenk\xE4se en banaan",
+    "Twee sneetjes volkoren met h\xFCttenk\xE4se en plakjes banaan.",
+    SN,
+    "cold",
+    "portable",
+    "medium",
+    true,
+    4,
+    "bread",
+    "26 g eiwit voor 412 kcal \u2014 de stevige trainingssnack.",
+    `Een snack met brood erbij: 26 gram eiwit en zo'n 410 kcal. Bedoeld voor trainingsdagen waarop je aan het eind van de middag calorie\xEBn tekortkomt \u2014 niet voor rustdagen.`,
+    [
+      ["huttenkase", 150, "primary"],
+      ["volkorenbrood", 70, "supporting"],
+      ["banaan", 120, "supporting"]
+    ]
+  ),
+  meal(
+    "x41",
+    "Wrap met kalkoen en hummus",
+    "Volkoren wrap met kalkoenfilet, hummus en rauwkost.",
+    SN,
+    "cold",
+    "portable",
+    "medium",
+    false,
+    5,
+    "bread",
+    "38 g eiwit voor 369 kcal \u2014 de stevigste hartige snack.",
+    `Wrap met kalkoen: 38 gram eiwit voor zo'n 370 kcal. De stevigste hartige snack in de lijst; op zware dagen is dit de oplossing, op rustdagen is een gewone snack genoeg.`,
+    [
+      ["kalkoenfilet", 100, "primary"],
+      ["volkoren-wrap", 62, "supporting"],
+      ["hummus", 40, "supporting"],
+      ["rauwkost", 30, "supporting"]
+    ]
+  ),
+  // ---------- Aanvullingen: traktatie en paranoot ----------
+  meal(
+    "x42",
+    "Kwark met pecan (traktatie)",
+    "250 g magere kwark met 15 g pecannoten.",
+    SN,
+    "cold",
+    "portable",
+    "medium",
+    true,
+    2,
+    "kwark",
+    "26 g eiwit plus pecan \u2014 dit is dessert, geen gezondheidskeuze.",
+    `Dit is bewust een traktatie: pecan is de noot met de meeste calorie\xEBn en het minste eiwit \u2014 dessert dus, geen gezondheidskeuze. De 15 gram gaat gewoon van je notenbudget af; de kwark eronder doet het eigenlijke werk.`,
+    [
+      ["pecan", 15, "primary"],
+      ["magere-kwark", 250, "primary"]
+    ]
+  ),
+  meal(
+    "x43",
+    "Skyr met drie paranoten",
+    "200 g skyr met drie paranoten (15 g).",
+    SN,
+    "cold",
+    "portable",
+    "medium",
+    true,
+    2,
+    "skyr",
+    "24 g eiwit plus je seleniumdosis \u2014 max drie noten.",
+    `Drie paranoten dekken je seleniumbehoefte ruim \u2014 en meer dan drie is echt af te raden, selenium kent een bovengrens. De skyr maakt er een volwaardig eiwitmoment van; de paranoten zijn hier het supplement.`,
+    [
+      ["paranoot", 15, "primary"],
+      ["skyr", 200, "primary"]
+    ]
+  )
+];
+export {
+  SEED_INGREDIENTS,
+  SEED_MEALS,
+  seedIngredientsById
+};

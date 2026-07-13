@@ -1,0 +1,243 @@
+/* Aanvullende stijlen voor de Week-, Boodschappen- en Ingrediëntenweergave.
+   De generieke basisklassen staan in nutrition.css; dit bestand vult aan en
+   wint bij overlap door de extra .nplan-scope op de view-wortel. */
+
+/* ---------- gedeeld: weeknavigatie + icoonknoppen ---------- */
+.nplan .nplan-weeknav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.nplan .nplan-weeknav-label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+}
+.nplan .nplan-iconbtn {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-raised);
+  color: var(--text-dim);
+  font-size: 18px;
+  font-weight: 700;
+}
+.nplan .nplan-iconbtn:disabled { opacity: 0.5; }
+
+/* ---------- weekgrid ---------- */
+.nplan .nweek-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.nplan .nweek-day {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+}
+.nplan .nweek-day.today {
+  border-color: rgba(0, 229, 255, 0.55);
+  box-shadow: 0 0 12px -4px var(--neon-cyan);
+}
+.nplan .nweek-day-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.nplan .nweek-date {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.nplan .nweek-daytype {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.nplan .nweek-slots {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.nplan .nweek-slot {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+  min-width: 0;
+}
+.nplan .nweek-slot-time {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.nplan .nweek-slot-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nplan .nweek-pin { color: var(--neon-orange); }
+.nplan .nweek-slot-protein {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--neon-lime);
+  font-variant-numeric: tabular-nums;
+}
+.nplan .nweek-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.nplan .nweek-empty .btn { padding: 8px 14px; }
+.nplan .nweek-day .nplan-iconbtn {
+  align-self: flex-end;
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+}
+
+@media (min-width: 900px) {
+  .nplan .nweek-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .nplan .nweek-day { padding: 10px; }
+  .nplan .nweek-day-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ---------- boodschappenlijst ---------- */
+.nplan .nshop-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+.nplan .nshop-item label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  cursor: pointer;
+}
+.nplan .nshop-item input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--neon-teal);
+}
+.nplan .nshop-name { font-size: 15px; }
+.nplan .nshop-item.done .nshop-name {
+  text-decoration: line-through;
+  color: var(--text-faint);
+}
+
+/* ---------- ingrediëntenlijst ---------- */
+.nplan .ning-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+.nplan .ning-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+.nplan .ning-row:last-child { border-bottom: none; }
+.nplan .ning-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  padding: 6px 0;
+}
+.nplan .ning-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.nplan .ning-nut {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--neon-orange);
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 1px 7px;
+  flex-shrink: 0;
+}
+.nplan .ning-pref {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--text-faint);
+  border-radius: var(--radius-sm);
+}
+.nplan .ning-pref.on-like {
+  color: var(--neon-magenta);
+  text-shadow: 0 0 12px var(--neon-magenta);
+}
+.nplan .ning-pref.on-dislike {
+  color: var(--status-red);
+  text-shadow: 0 0 12px var(--status-red);
+}
+
+/* ---------- Open Food Facts ---------- */
+.nplan .ning-off-result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+.nplan .ning-off-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.nplan .ning-off-result select {
+  width: auto;
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+.nplan .ning-off-result .btn {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+}
+.nplan .ning-off-form .btn { flex: 0 0 auto; }
