@@ -14,6 +14,7 @@ import type {
 import AuthView from './views/AuthView'
 import Onboarding from './views/Onboarding'
 import Home from './views/Home'
+import NutritionView from './views/nutrition/NutritionView'
 import ScheduleView from './views/ScheduleView'
 import Favorites from './views/Favorites'
 import TrackView from './views/TrackView'
@@ -260,6 +261,7 @@ function AuthedApp({ userId }: { userId: string }) {
         <>
           <main className="app-main">
             {tab === 'home' && <Home />}
+            {tab === 'eten' && <NutritionView />}
             {tab === 'schema' && <ScheduleView />}
             {tab === 'hartjes' && <Favorites />}
             {tab === 'meten' && <TrackView />}

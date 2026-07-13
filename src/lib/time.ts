@@ -1,4 +1,4 @@
-import type { Phase, Profile, ScheduleDay, SportType } from './types'
+import type { FastDay, Phase, Profile, ScheduleDay, SportType } from './types'
 
 // Alle berekeningen in lokale tijd van het apparaat.
 // Weekdag-conventie: 0 = maandag .. 6 = zondag.
@@ -80,16 +80,28 @@ interface Opening {
   fastHours: number // hoeveel uur vasten hoort vooraf te gaan (24 - vensterlengte)
 }
 
-/** Vensteropeningen van vastendagen, van gisteren tot +8 dagen, gesorteerd. */
-function windowOpenings(now: Date, profile: Profile, schedule: ScheduleDay[]): Opening[] {
+/**
+ * Vensteropeningen van vastendagen, van gisteren tot +8 dagen, gesorteerd.
+ * Dag-log-rijen tellen mee: een dag met status 'skipped' (bijv. slechte nacht)
+ * is die dag geen vastendag, en expliciete venstertijden op de rij winnen.
+ */
+function windowOpenings(
+  now: Date,
+  profile: Profile,
+  schedule: ScheduleDay[],
+  fasts: FastDay[] = [],
+): Opening[] {
   const out: Opening[] = []
   for (let offset = -1; offset <= 8; offset++) {
     const day = startOfDay(new Date(now.getTime() + offset * 86400000))
     const plan = planForDate(day, profile, schedule)
-    if (!plan.fasting) continue
-    const open = day.getTime() + plan.startMin * 60000
-    let close = day.getTime() + plan.endMin * 60000
-    if (plan.endMin <= plan.startMin) close += 86400000
+    const row = fasts.find((f) => f.day === dateKey(day))
+    if (!plan.fasting || row?.status === 'skipped') continue
+    const startMin = row?.window_start ? parseTime(row.window_start) : plan.startMin
+    const endMin = row?.window_end ? parseTime(row.window_end) : plan.endMin
+    const open = day.getTime() + startMin * 60000
+    let close = day.getTime() + endMin * 60000
+    if (endMin <= startMin) close += 86400000
     out.push({ open, close, fastHours: 24 - (close - open) / 3600000 })
   }
   return out.sort((a, b) => a.open - b.open)
@@ -128,8 +140,9 @@ export function fastTarget(
   startedAt: Date,
   profile: Profile,
   schedule: ScheduleDay[],
+  fasts: FastDay[] = [],
 ): Date {
-  const openings = windowOpenings(startedAt, profile, schedule)
+  const openings = windowOpenings(startedAt, profile, schedule, fasts)
   const next = openings.find((o) => o.open > startedAt.getTime())
   let fastHours: number
   if (next) {
@@ -148,8 +161,11 @@ export function computeStatus(
   profile: Profile,
   schedule: ScheduleDay[],
   activeFastStartedAt?: string | null,
+  fasts: FastDay[] = [],
 ): FastingStatus {
   const todayPlan = planForDate(now, profile, schedule)
+  // Een bewust overgeslagen dag (slechte nacht) gedraagt zich als vrije dag.
+  const todaySkipped = fasts.some((f) => f.day === dateKey(now) && f.status === 'skipped')
   const anyFasting = schedule.length === 0 || schedule.some((s) => s.fasting)
   const base = {
     sport: todayPlan.sport,
@@ -172,12 +188,12 @@ export function computeStatus(
   }
 
   const t = now.getTime()
-  const openings = windowOpenings(now, profile, schedule)
+  const openings = windowOpenings(now, profile, schedule, fasts)
 
   // 1. Loopt er een gestarte vast?
   if (activeFastStartedAt) {
     const start = new Date(activeFastStartedAt)
-    const target = fastTarget(start, profile, schedule)
+    const target = fastTarget(start, profile, schedule, fasts)
     // Geen ondergrens op t: een tick-achterstand van de klok mag een net
     // gestarte vast niet als "voorbij" behandelen.
     if (t < target.getTime()) {
@@ -226,8 +242,8 @@ export function computeStatus(
     }
   }
 
-  // Vrije dag (geen venster vandaag) en geen actieve vast → vrij
-  if (!todayPlan.fasting) {
+  // Vrije of overgeslagen dag (geen venster vandaag) en geen actieve vast → vrij
+  if (!todayPlan.fasting || todaySkipped) {
     const changeAt = advisedStart && advisedStart.getTime() > t ? advisedStart : startOfDay(new Date(t + 86400000))
     return {
       ...base,

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAppData } from '../App'
 import StatusRing from '../components/StatusRing'
 import TipCard from '../components/TipCard'
+import BadNightButton from '../components/BadNightButton'
 import HeavyFlow from './HeavyFlow'
 import { computeStatus, dateKey, fastTarget, formatDuration, formatHm } from '../lib/time'
 import { pickTip } from '../lib/tips'
@@ -33,8 +34,8 @@ export default function Home() {
   }, [])
 
   const status = useMemo(
-    () => computeStatus(now, profile, schedule, activeFast?.started_at ?? null),
-    [now, profile, schedule, activeFast],
+    () => computeStatus(now, profile, schedule, activeFast?.started_at ?? null, fasts),
+    [now, profile, schedule, activeFast, fasts],
   )
 
   // Vast die zijn doel heeft bereikt: rustig afronden als 'gehaald'.
@@ -43,7 +44,7 @@ export default function Home() {
   const completing = useRef(false)
   useEffect(() => {
     if (!activeFast?.started_at || completing.current) return
-    const target = fastTarget(new Date(activeFast.started_at), profile, schedule)
+    const target = fastTarget(new Date(activeFast.started_at), profile, schedule, fasts)
     if (Date.now() < target.getTime()) return
     completing.current = true
     patchFast(activeFast.day, {
@@ -52,7 +53,7 @@ export default function Home() {
     }).finally(() => {
       completing.current = false
     })
-  }, [activeFast, status.kind, profile, schedule, patchFast])
+  }, [activeFast, status.kind, profile, schedule, fasts, patchFast])
 
   // Er staat altijd één tip op dit scherm. Hij ververst elk uur, maar alleen
   // als je hem ook echt gezien hebt: binnen het uur terugkomen (of van tabblad
@@ -66,7 +67,7 @@ export default function Home() {
   const pickedOnce = useRef(false)
 
   function pickFresh(exclude: number[]) {
-    const s = computeStatus(new Date(), profile, schedule, activeFast?.started_at ?? null)
+    const s = computeStatus(new Date(), profile, schedule, activeFast?.started_at ?? null, fasts)
     const t = pickTip(tips, reads, { phase: s.phase, sportDay: s.sport !== null, heavy: false }, exclude)
     if (t) {
       setTip(t)
@@ -172,6 +173,8 @@ export default function Home() {
               Ik heb het zwaar
             </button>
           )}
+
+          <BadNightButton />
 
           {signal.show && (
             <div className="advice caution" role="status">
