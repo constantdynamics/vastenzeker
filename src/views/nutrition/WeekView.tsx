@@ -149,6 +149,7 @@ export default function WeekView() {
       <div className="nweek-grid">
         {dates.map((date) => {
           const dk = dateKey(date)
+          const isPast = dk < todayKey
           const stored = data.planFor(dk)
           const result = data.planResultFor(date)
           const dayType = stored?.dayType ?? data.contextFor(date).dayType
@@ -195,26 +196,30 @@ export default function WeekView() {
                       )
                     })}
                   </ul>
-                  <button
-                    className="nplan-iconbtn"
-                    onClick={() => void regenerateDay(date)}
-                    disabled={busyDay === dk}
-                    aria-label="Regenereer deze dag"
-                  >
-                    {busyDay === dk ? '…' : '⟳'}
-                  </button>
+                  {!isPast && (
+                    <button
+                      className="nplan-iconbtn"
+                      onClick={() => void regenerateDay(date)}
+                      disabled={busyDay === dk}
+                      aria-label="Regenereer deze dag"
+                    >
+                      {busyDay === dk ? '…' : '⟳'}
+                    </button>
+                  )}
                 </>
               ) : (
                 <div className="nweek-empty">
-                  <span className="faint">— nog geen plan</span>
-                  <button
-                    className="btn"
-                    onClick={() => void planDay(date)}
-                    disabled={busyDay === dk}
-                    aria-label={`Plan ${WEEKDAY_FULL[weekdayOf(date)]} ${shortDate(date)}`}
-                  >
-                    {busyDay === dk ? '…' : 'Plan'}
-                  </button>
+                  <span className="faint">{isPast ? '— geen plan bewaard' : '— nog geen plan'}</span>
+                  {!isPast && (
+                    <button
+                      className="btn"
+                      onClick={() => void planDay(date)}
+                      disabled={busyDay === dk}
+                      aria-label={`Plan ${WEEKDAY_FULL[weekdayOf(date)]} ${shortDate(date)}`}
+                    >
+                      {busyDay === dk ? '…' : 'Plan'}
+                    </button>
+                  )}
                 </div>
               )}
             </article>

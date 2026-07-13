@@ -47,14 +47,18 @@ export default function DayView() {
   const plan = useMemo(() => planResultFor(date), [planResultFor, date])
 
   const isToday = dk === dateKey(now)
+  const isPast = dk < dateKey(now)
   const nowMin = now.getHours() * 60 + now.getMinutes()
   const { openMin, closeMin } = ctx.window
-  const inWindow = nowMin >= openMin && nowMin < closeMin
+  // Venster over middernacht: closeMin > 1440; vóór de opening telt "nu" dan
+  // bij de volgende kalenderdag zodat de countdown blijft kloppen.
+  const nowEff = closeMin > 1440 && nowMin < openMin ? nowMin + 1440 : nowMin
+  const inWindow = nowEff >= openMin && nowEff < closeMin
 
   let windowText: string | null = null
   if (isToday) {
-    if (nowMin < openMin) windowText = `opent over ${fmtRemaining(openMin - nowMin)}`
-    else if (nowMin < closeMin) windowText = `sluit over ${fmtRemaining(closeMin - nowMin)}`
+    if (nowEff < openMin) windowText = `opent over ${fmtRemaining(openMin - nowEff)}`
+    else if (nowEff < closeMin) windowText = `sluit over ${fmtRemaining(closeMin - nowEff)}`
     else windowText = 'venster gesloten'
   }
 
@@ -107,10 +111,21 @@ export default function DayView() {
 
         <div className="nwin" aria-label="Eetvenster">
           <div className="nwin-track">
-            <div
-              className="nwin-fill"
-              style={{ left: pct(openMin), width: `calc(${pct(closeMin)} - ${pct(openMin)})` }}
-            />
+            {closeMin > 1440 ? (
+              // Over middernacht: twee segmenten (avond + vroege ochtend).
+              <>
+                <div
+                  className="nwin-fill"
+                  style={{ left: pct(openMin), width: `calc(100% - ${pct(openMin)})` }}
+                />
+                <div className="nwin-fill" style={{ left: 0, width: pct(closeMin - 1440) }} />
+              </>
+            ) : (
+              <div
+                className="nwin-fill"
+                style={{ left: pct(openMin), width: `calc(${pct(closeMin)} - ${pct(openMin)})` }}
+              />
+            )}
             {isToday && <div className="nwin-now" style={{ left: pct(nowMin) }} aria-hidden />}
           </div>
           <div className="nwin-times small muted">
@@ -149,17 +164,25 @@ export default function DayView() {
       ) : (
         !loading && (
           <section className="card stack" style={{ alignItems: 'center' }}>
-            <p className="muted small">Nog geen dagplan voor deze dag.</p>
-            <button className="btn btn-primary" onClick={() => ensurePlan(date).catch(() => {})}>
-              Genereer dagplan
-            </button>
+            {isPast ? (
+              <p className="muted small">
+                Deze dag ligt in het verleden — er is geen plan bewaard.
+              </p>
+            ) : (
+              <>
+                <p className="muted small">Nog geen dagplan voor deze dag.</p>
+                <button className="btn btn-primary" onClick={() => ensurePlan(date).catch(() => {})}>
+                  Genereer dagplan
+                </button>
+              </>
+            )}
           </section>
         )
       )}
 
       <DrinksWidget isToday={isToday} inWindow={isToday && inWindow} />
 
-      {plan && (
+      {plan && !isPast && (
         <button
           className="btn btn-ghost btn-wide"
           disabled={regenBusy}

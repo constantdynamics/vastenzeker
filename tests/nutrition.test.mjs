@@ -332,5 +332,73 @@ check('copy: cardiosnack noemt "ná je duurloop"', slotRationale('SNACK', 'CARDI
   )
 }
 
+// ---- Randgevallen uit de review: klemmen op het venster ----
+{
+  // Avondduurloop die tegen de sluiting aan eindigt: de snack mag nooit ná
+  // het venster vallen (eten na sluiting breekt de vast).
+  const win = { openMin: 720, closeMin: 1140, fasting: true, badNight: false }
+  const run = [{ type: 'cardio', startMin: 1080, endMin: 1125 }] // 18:00–18:45
+  const slots = deriveSlots('CARDIO', win, run)
+  check('klem: avondloop-snack blijft binnen het venster',
+    slots.every((s) => s.timeMin >= win.openMin && s.timeMin <= win.closeMin - 15))
+
+  // Kracht die vlak voor sluiting eindigt: diner nooit tijdens de sessie.
+  const late = [{ type: 'strength', startMin: 1030, endMin: 1120 }] // 17:10–18:40
+  const dinner = deriveSlots('FED_STRENGTH', win, late).find((s) => s.slot === 'DINNER')
+  check('klem: diner niet tijdens een late krachtsessie', dinner.timeMin >= late[0].endMin)
+
+  // Kracht volledig ná sluiting: gewone snacktiming, niets buiten het venster.
+  const evening = [{ type: 'strength', startMin: 1200, endMin: 1290 }] // 20:00–21:30
+  const evSlots = deriveSlots('FED_STRENGTH', win, evening)
+  check('klem: avondkracht duwt geen slot buiten het venster',
+    evSlots.every((s) => s.timeMin >= win.openMin && s.timeMin <= win.closeMin - 15))
+  check('klem: avondkracht-snack valt terug op open + 3u',
+    evSlots.find((s) => s.slot === 'SNACK').timeMin === win.openMin + 180)
+}
+
+// ---- Nuchtere ochtendkracht: venster opent bij het einde van de sessie ----
+{
+  const schedule = Array.from({ length: 7 }, (_, weekday) => ({
+    weekday, fasting: true, window_start: null, window_end: null,
+    sport_type: weekday === 1 ? 'strength' : null,
+    sport_time: weekday === 1 ? '06:00' : null,
+    sport_end_time: weekday === 1 ? '07:30' : null,
+  }))
+  // Eerstvolgende dinsdag als concrete datum
+  const d = new Date()
+  d.setDate(d.getDate() + ((1 - (d.getDay() + 6) % 7 + 7) % 7))
+  const ctx = dayContextFor(d, appProfile, schedule, null)
+  check('ochtendkracht: dagtype FASTED_STRENGTH', ctx.dayType === 'FASTED_STRENGTH')
+  check('ochtendkracht: venster opent bij einde sessie', ctx.window.openMin === 7 * 60 + 30)
+  const bf = deriveSlots(ctx.dayType, ctx.window, ctx.sessions).find((s) => s.slot === 'BREAK_FAST')
+  check('ochtendkracht: BREAK_FAST om 07:30', bf.timeMin === 7 * 60 + 30)
+}
+
+// ---- Venster over middernacht: niet inklappen tot één uur ----
+{
+  const profile = { ...appProfile, window_start: '20:00:00', window_end: '01:00:00' }
+  const win = effectiveWindow(new Date(), profile, [], null)
+  check('middernacht: vensterlengte 5 uur', win.closeMin - win.openMin === 300)
+  const slots = deriveSlots('REST', win, [])
+  check('middernacht: alle slots binnen het venster',
+    slots.every((s) => s.timeMin >= win.openMin && s.timeMin <= win.closeMin - 15))
+}
+
+// ---- Family-cap blijft hard, ook bij een uitgedunde pool ----
+{
+  const prefs = { meal: {}, ingredient: {} }
+  for (const m of SEED_MEALS) {
+    if (m.eligibleSlots.includes('CLOSE') && (m.family === 'yoghurt' || m.family === 'huttenkase')) {
+      prefs.meal[mealPrefKey(m.id, 'CLOSE')] = 'dislike'
+    }
+  }
+  const input = makeInput('REST', { seed: 7 })
+  const alts = alternativesForSlot({ ...input, prefs }, 'CLOSE', 'c05')
+  const fam = {}
+  for (const a of alts) fam[a.meal.family] = (fam[a.meal.family] ?? 0) + 1
+  check('family-cap hard bij uitgedunde pool', Object.values(fam).every((n) => n <= 3),
+    JSON.stringify(fam))
+}
+
 console.log(failures === 0 ? '\nALLE TESTS GESLAAGD' : `\n${failures} TESTS GEFAALD`)
 process.exit(failures === 0 ? 0 : 1)

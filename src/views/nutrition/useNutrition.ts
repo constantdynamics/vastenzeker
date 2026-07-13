@@ -115,7 +115,10 @@ export function useNutrition(): NutritionData {
       loadNutritionProfile(userId),
       loadPreferences(userId),
       loadMealLog(userId, dateKey(addDays(today, -30)), dateKey(addDays(today, 14))),
-      loadDayPlans(userId, dateKey(addDays(today, -1)), dateKey(addDays(today, 14))),
+      // Zelfde bereik als de log: terugbladeren mag geen dag "zonder plan"
+      // tonen (en al helemaal geen nieuw plan genereren) puur omdat de rij
+      // buiten het laadvenster viel.
+      loadDayPlans(userId, dateKey(addDays(today, -30)), dateKey(addDays(today, 14))),
     ])
     setIngredients(content.ingredients)
     setMeals(content.meals)
@@ -193,13 +196,16 @@ export function useNutrition(): NutritionData {
       const ctx = contextFor(date)
       const slots = deriveSlots(ctx.dayType, ctx.window, ctx.sessions)
       const dk = ctx.dateKey
-      // Gegeten slots liggen vast: regenereren mag een gegeten maaltijd niet wegtoveren.
+      // Gegeten slots liggen vast: regenereren mag een gegeten maaltijd niet
+      // wegtoveren. De schaal komt uit het ÉCHTE opgeslagen plan (closure),
+      // niet uit allPlans — regenerate filtert de dag daar juist uit en zou
+      // de vastgelegde portieschaal anders naar 1 resetten.
       const eaten = logs.filter((l) => l.day === dk && l.status === 'eaten')
-      const stored = allPlans.find((p) => p.day === dk)
+      const stored = plans.find((p) => p.day === dk)
       const lockedSlots: Partial<Record<MealSlot, { mealId: string; proteinScale: number }>> = {}
       for (const row of eaten) {
         lockedSlots[row.slot] = {
-          mealId: String(row.meal_id),
+          mealId: row.meal_id,
           proteinScale: stored?.slots[row.slot]?.proteinScale ?? 1,
         }
       }
@@ -215,7 +221,7 @@ export function useNutrition(): NutritionData {
         lockedSlots,
       })
     },
-    [contextFor, historyForPlans, ingredientsById, logs, meals, nutritionProfile, prefs],
+    [contextFor, historyForPlans, ingredientsById, logs, meals, nutritionProfile, plans, prefs],
   )
 
   const persistPlan = useCallback(
@@ -253,7 +259,7 @@ export function useNutrition(): NutritionData {
             id: `local-${result.dateKey}-${s.slot}`,
             day: result.dateKey,
             slot: s.slot,
-            meal_id: Number(s.mealId),
+            meal_id: s.mealId,
             status: 'suggested' as const,
             actual_grams: null,
           }))
@@ -268,6 +274,9 @@ export function useNutrition(): NutritionData {
     async (date: Date) => {
       if (loading || meals.length === 0) return
       const dk = dateKey(date)
+      // Het verleden is historie: daar genereren we nooit met terugwerkende
+      // kracht een plan voor (terugbladeren zou anders logs overschrijven).
+      if (dk < dateKey(new Date())) return
       if (plans.some((p) => p.day === dk)) return
       await persistPlan(buildPlan(date, '', plans))
     },
@@ -277,6 +286,7 @@ export function useNutrition(): NutritionData {
   const regenerate = useCallback(
     async (date: Date) => {
       const dk = dateKey(date)
+      if (dk < dateKey(new Date())) return // verleden blijft staan
       await deleteDayPlan(userId, dk)
       // Nieuwe seed per regeneratie: anders krijg je exact hetzelfde plan terug.
       await persistPlan(buildPlan(date, `:${Date.now()}`, plans.filter((p) => p.day !== dk)))
@@ -286,9 +296,11 @@ export function useNutrition(): NutritionData {
 
   const generateWeek = useCallback(
     async (dates: Date[]) => {
+      const todayKey = dateKey(new Date())
       let working = [...plans]
       for (const date of dates) {
         const dk = dateKey(date)
+        if (dk < todayKey) continue // verleden nooit met terugwerkende kracht plannen
         if (working.some((p) => p.day === dk)) continue
         const result = buildPlan(date, '', working)
         const plan = await persistPlan(result)
@@ -332,39 +344,26 @@ export function useNutrition(): NutritionData {
       const dk = dateKey(date)
       const stored = plans.find((p) => p.day === dk)
       if (!stored) return
-      const next: StoredDayPlan = {
-        ...stored,
-        slots: {
-          ...stored.slots,
-          [slot]: { ...stored.slots[slot], mealId, pinned: false, proteinScale: 1 },
-        },
-      }
-      setPlans((prev) => [...prev.filter((p) => p.day !== dk), next])
-      setLogs((prev) => [
-        ...prev.filter((l) => !(l.day === dk && l.slot === slot)),
-        {
-          id: `local-${dk}-${slot}`,
-          day: dk,
-          slot,
-          meal_id: Number(mealId),
-          status: 'swapped',
-          actual_grams: null,
-        },
-      ])
-      // Persisteren via het herrekende resultaat, zodat de schaal ook in de DB klopt.
+      // Een gegeten slot ligt vast: één tik mag de gegeten-status en de
+      // vastgelegde porties niet stilletjes wissen.
+      if (logs.some((l) => l.day === dk && l.slot === slot && l.status === 'eaten')) return
+
+      // Eerst herrekenen (synchronemath), dan lokale state én DB uit hetzelfde
+      // resultaat vullen — anders lopen de portieschalen uit de pas.
       const ctx = contextFor(date)
       const slots = deriveSlots(ctx.dayType, ctx.window, ctx.sessions)
-      const chosen: Partial<
-        Record<MealSlot, { mealId: string; locked?: boolean; pinned?: boolean; proteinScale?: number }>
-      > = {}
       const eaten = new Set(
         logs.filter((l) => l.day === dk && l.status === 'eaten').map((l) => l.slot),
       )
-      for (const [sl, s] of Object.entries(next.slots)) {
+      const chosen: Partial<
+        Record<MealSlot, { mealId: string; locked?: boolean; pinned?: boolean; proteinScale?: number }>
+      > = {}
+      for (const [sl, s] of Object.entries(stored.slots)) {
+        const isSwapped = sl === slot
         chosen[sl as MealSlot] = {
-          mealId: s.mealId,
+          mealId: isSwapped ? mealId : s.mealId,
           locked: eaten.has(sl as MealSlot),
-          pinned: s.pinned,
+          pinned: isSwapped ? false : s.pinned,
           proteinScale: s.proteinScale,
         }
       }
@@ -372,6 +371,30 @@ export function useNutrition(): NutritionData {
         { ctx, slots, meals, ingredientsById, profile: nutritionProfile, prefs },
         chosen,
       )
+      const storedSlots = {} as StoredDayPlan['slots']
+      for (const s of refit.slots) {
+        storedSlots[s.slot] = {
+          mealId: s.mealId,
+          proteinScale: s.proteinScale,
+          pinned: s.pinned,
+          timeMin: s.spec.timeMin,
+        }
+      }
+      setPlans((prev) => [
+        ...prev.filter((p) => p.day !== dk),
+        { day: dk, dayType: refit.dayType, slots: storedSlots, locked: false },
+      ])
+      setLogs((prev) => [
+        ...prev.filter((l) => !(l.day === dk && l.slot === slot)),
+        {
+          id: `local-${dk}-${slot}`,
+          day: dk,
+          slot,
+          meal_id: mealId,
+          status: 'swapped',
+          actual_grams: null,
+        },
+      ])
       await saveDayPlan(userId, refit)
       await upsertMealLog(userId, dk, slot, mealId, 'swapped')
     },
@@ -401,7 +424,7 @@ export function useNutrition(): NutritionData {
           id: `local-${dk}-${slot}`,
           day: dk,
           slot,
-          meal_id: Number(mealId),
+          meal_id: mealId,
           status,
           actual_grams: actualGrams ?? null,
         },
@@ -440,11 +463,15 @@ export function useNutrition(): NutritionData {
 
   const addOffIngredient = useCallback(
     async (c: OffCandidate, category: IngredientCategory) => {
+      // Al eerder toegevoegd: de unieke slug zou de insert weigeren en dat
+      // als verbindingsfout tonen — behandel het gewoon als succes.
+      const existing = ingredients.find((i) => i.slug === `off-${c.externalId}`)
+      if (existing) return existing
       const added = await addIngredientFromOff(userId, c, category)
       if (added) setIngredients((prev) => [...prev, added])
       return added
     },
-    [userId],
+    [ingredients, userId],
   )
 
   return {

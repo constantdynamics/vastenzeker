@@ -78,11 +78,19 @@ export function effectiveWindow(
     if (fastRow.window_start) openMin = parseTime(fastRow.window_start)
     if (fastRow.window_end) closeMin = parseTime(fastRow.window_end)
   }
-  if (closeMin <= openMin) closeMin = openMin + 60 // degeneratie-vangnet
+  // Venster over middernacht: net als in time.ts telt de sluiting dan bij de
+  // volgende dag (closeMin > 1440). formatTime wrapt de weergave zelf.
+  if (closeMin <= openMin) closeMin += 1440
   return { openMin, closeMin, fasting, badNight }
 }
 
-/** §4, letterlijk: tijd én eisen per slot volgen uit dagtype en trainingstijden. */
+/**
+ * §4: tijd én eisen per slot volgen uit dagtype en trainingstijden.
+ * Alle slottijden worden op het venster geklemd ([open, close − 15]): eten na
+ * sluiting zou de vast breken, en een sessie die de venstergrens kruist mag
+ * geen slot buiten het venster duwen. Bij extreem krappe configuraties kunnen
+ * slottijden daardoor samenvallen — de volgorde blijft dan op tijd gesorteerd.
+ */
 export function deriveSlots(
   dayType: DayType,
   window: DayWindow,
@@ -90,12 +98,14 @@ export function deriveSlots(
 ): SlotSpec[] {
   const open = window.openMin
   const close = window.closeMin
+  const lastEat = close - 15
+  const clampT = (t: number) => Math.min(Math.max(t, open), lastEat)
   const strength = sessions.find((s) => s.type === 'strength') ?? null
   const cardio = sessions.find((s) => s.type === 'cardio') ?? null
 
   const breakFast: SlotSpec = {
     slot: 'BREAK_FAST',
-    timeMin: dayType === 'FASTED_STRENGTH' && strength ? strength.endMin : open,
+    timeMin: clampT(dayType === 'FASTED_STRENGTH' && strength ? strength.endMin : open),
     requiresCold: true, // altijd, mijn voorkeur (§2 regel 2)
     requiresPortable: dayType === 'FASTED_STRENGTH',
     requiresFastDigestion: dayType === 'FASTED_STRENGTH',
@@ -108,14 +118,15 @@ export function deriveSlots(
   let snackTime: number
   if (dayType === 'CARDIO' && cardio) {
     snackTime = cardio.endMin + 15 // NA het rennen
-  } else if (dayType === 'FED_STRENGTH' && strength) {
+  } else if (dayType === 'FED_STRENGTH' && strength && strength.startMin < close) {
     snackTime = Math.max(open, strength.startMin - 45) // pre-workout
   } else {
+    // geen sessie binnen het venster (bv. kracht ná sluiting): gewone timing
     snackTime = open + 180
   }
   const snack: SlotSpec = {
     slot: 'SNACK',
-    timeMin: snackTime,
+    timeMin: clampT(snackTime),
     requiresCold: false,
     requiresPortable: false,
     requiresFastDigestion: dayType === 'FED_STRENGTH',
@@ -125,12 +136,14 @@ export function deriveSlots(
     proteinTargetG: [30, 45],
   }
 
-  // Diner: uiterlijk een uur voor sluiting, maar nooit binnen 30 min na kracht
-  // en altijd vóór het CLOSE-moment.
+  // Diner: uiterlijk een uur voor sluiting, maar nooit binnen 30 min na een
+  // krachtsessie die in het venster eindigt — die regel wint van de marge tot
+  // CLOSE, omdat eten tijdens/direct na de sessie fysiek niet kan.
   let dinnerTime = close - 60
-  if (strength && strength.endMin + 30 > dinnerTime) {
-    dinnerTime = Math.min(strength.endMin + 30, close - 45)
+  if (strength && strength.endMin <= close && strength.endMin + 30 > dinnerTime) {
+    dinnerTime = strength.endMin + 30
   }
+  dinnerTime = clampT(dinnerTime)
   const dinner: SlotSpec = {
     slot: 'DINNER',
     timeMin: dinnerTime,
@@ -167,8 +180,15 @@ export function dayContextFor(
 ): DayContext {
   const row = schedule.find((s) => s.weekday === weekdayOf(date))
   const sessions = sessionsForScheduleDay(row)
-  const window = effectiveWindow(date, profile, schedule, fastRow)
+  let window = effectiveWindow(date, profile, schedule, fastRow)
   const dayType = deriveDayType(sessions, window.openMin)
+  // Nuchtere kracht die vóór de vensteropening eindigt: het venster opent
+  // effectief bij het einde van de sessie — direct eiwit na de training is
+  // het hele punt van dit dagtype (§4: BREAK_FAST = session.end).
+  const strength = sessions.find((s) => s.type === 'strength')
+  if (dayType === 'FASTED_STRENGTH' && strength && strength.endMin < window.openMin) {
+    window = { ...window, openMin: strength.endMin }
+  }
   const isTrainingDay = sessions.length > 0
   return {
     dateKey: dateKey(date),

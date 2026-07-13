@@ -719,16 +719,12 @@ export function alternativesForSlot(
     add(m)
     freshTaken++
   }
-  // Aanvullen tot 10: eerst mét family-cap, dan zonder — exact 10 zodra de
-  // pool het toelaat.
+  // Aanvullen tot 10, altijd mét family-cap: "maximaal 3 uit dezelfde family"
+  // is een harde regel (§7). Een uitgedunde pool levert dan liever minder dan
+  // tien alternatieven dan zes varianten op kwark.
   for (const m of pool) {
     if (selected.length >= 10) break
     if (selectedIds.has(m.id) || !underCap(m)) continue
-    add(m)
-  }
-  for (const m of pool) {
-    if (selected.length >= 10) break
-    if (selectedIds.has(m.id)) continue
     add(m)
   }
 
@@ -756,7 +752,7 @@ export function alternativesForSlot(
     if (victimIdx < 0) break
     removeAt(victimIdx)
     const remaining = novelInPool.filter((m) => !selectedIds.has(m.id))
-    const replacement = remaining.find(underCap) ?? remaining[0]
+    const replacement = remaining.find(underCap) // de cap blijft ook hier hard
     if (!replacement) break
     add(replacement)
     haveNovel++

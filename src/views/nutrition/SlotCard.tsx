@@ -109,6 +109,8 @@ export default function SlotCard({
     setConfirmDislike(false)
     await rateMeal(meal.id, planned.slot, 'dislike').catch(() => {})
     // Slot direct hergenereren: wissel naar het hoogst scorende alternatief.
+    // Maar een gegeten slot ligt vast — de voorkeur telt dan alleen voor later.
+    if (eaten) return
     const best = alternatives[0]
     if (best) await swapMeal(date, planned.slot, best.meal.id).catch(() => {})
   }
@@ -177,19 +179,23 @@ export default function SlotCard({
         >
           {eaten ? '✓ Gegeten' : 'Gegeten?'}
         </button>
-        <button
-          className="alt-toggle"
-          aria-expanded={showAlts}
-          onClick={() => setShowAlts((v) => !v)}
-        >
-          Alternatieven ({alternatives.length}) {showAlts ? '▴' : '▾'}
-        </button>
+        {!eaten && (
+          <button
+            className="alt-toggle"
+            aria-expanded={showAlts}
+            onClick={() => setShowAlts((v) => !v)}
+          >
+            Alternatieven ({alternatives.length}) {showAlts ? '▴' : '▾'}
+          </button>
+        )}
       </div>
 
       {confirmDislike && (
         <div className="advice caution" role="alertdialog" aria-label="Niet meer voorstellen?">
           <span>
-            Niet meer voorstellen op dit moment? Je krijgt direct een ander voorstel voor dit slot.
+            {eaten
+              ? 'Niet meer voorstellen op dit moment? Deze maaltijd blijft vandaag als gegeten staan; de voorkeur telt vanaf morgen.'
+              : 'Niet meer voorstellen op dit moment? Je krijgt direct een ander voorstel voor dit slot.'}
             <span className="row" style={{ marginTop: 8 }}>
               <button className="btn small" onClick={confirmDislikeNow}>
                 Ja, vervang
@@ -211,7 +217,7 @@ export default function SlotCard({
         />
       )}
 
-      {showAlts && (
+      {showAlts && !eaten && (
         <AlternativesList date={date} ctx={ctx} slot={planned.slot} alternatives={alternatives} />
       )}
 

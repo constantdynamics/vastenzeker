@@ -71,7 +71,12 @@ export interface MealLogRow {
   id: string
   day: string // 'YYYY-MM-DD'
   slot: MealSlot
-  meal_id: number
+  /**
+   * Client-side altijd een string: in de seed-fallback zijn ids codes ('b01'),
+   * uit Supabase komen nummers die hier naar string worden gemapt. Alleen aan
+   * de DB-grens wordt geconverteerd (en niet-numerieke ids overgeslagen).
+   */
+  meal_id: string
   status: MealLogStatus
   actual_grams: Record<string, number> | null
 }
@@ -301,7 +306,10 @@ export async function loadMealLog(
       .lte('day', toDay)
       .order('day')
     if (error) throw error
-    return (data ?? []) as MealLogRow[]
+    return ((data ?? []) as (Omit<MealLogRow, 'meal_id'> & { meal_id: number })[]).map((r) => ({
+      ...r,
+      meal_id: String(r.meal_id),
+    }))
   } catch {
     return []
   }
@@ -341,6 +349,9 @@ export async function upsertMealLog(
   status: MealLogStatus,
   actualGrams?: Record<string, number>,
 ): Promise<void> {
+  // Seed-fallback (offline of lege contenttabellen) heeft code-ids ('b01');
+  // die bestaan niet in de DB en zouden als NaN corrupt wegschrijven.
+  if (!Number.isFinite(Number(mealId))) return
   try {
     await supabase.from('if_meal_log').upsert(
       {
@@ -409,6 +420,9 @@ export async function loadDayPlans(
 }
 
 export async function saveDayPlan(userId: string, plan: DayPlanResult): Promise<void> {
+  // Seed-fallback-ids ('b01') bestaan niet in de DB: dan niets wegschrijven,
+  // het plan leeft die sessie alleen in het geheugen.
+  if (plan.slots.some((s) => !Number.isFinite(Number(s.mealId)))) return
   const slots: Record<string, { meal_id: number; protein_scale: number; pinned: boolean; time_min: number }> = {}
   for (const s of plan.slots) {
     slots[s.slot] = {
