@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import BadNightButton from '../../components/BadNightButton'
+import WindowOverrideEditor from '../../components/WindowOverrideEditor'
 import { EMPTY_TOTALS, sumTotals } from '../../lib/nutrition/macros'
 import { DAY_TYPE_LABELS } from '../../lib/nutrition/types'
 import { dateKey, formatTime } from '../../lib/time'
@@ -135,6 +136,8 @@ export default function DayView() {
           </div>
         </div>
       </section>
+
+      <WindowOverrideEditor date={date} />
 
       {isToday && <BadNightButton />}
 
