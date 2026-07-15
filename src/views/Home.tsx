@@ -4,6 +4,7 @@ import StatusRing from '../components/StatusRing'
 import TipCard from '../components/TipCard'
 import BadNightButton from '../components/BadNightButton'
 import WindowOverrideEditor from '../components/WindowOverrideEditor'
+import FastStartEditor from '../components/FastStartEditor'
 import HeavyFlow from './HeavyFlow'
 import { computeStatus, dateKey, fastTarget, formatDuration, formatHm } from '../lib/time'
 import { pickTip } from '../lib/tips'
@@ -180,6 +181,7 @@ export default function Home() {
             </button>
           )}
 
+          {status.kind !== 'unplanned' && <FastStartEditor />}
           <BadNightButton />
           <WindowOverrideEditor date={now} />
 

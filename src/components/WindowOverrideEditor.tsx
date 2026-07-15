@@ -24,7 +24,7 @@ export default function WindowOverrideEditor({ date }: { date: Date }) {
   if (!expanded) {
     return (
       <button className="link-btn window-override-toggle" onClick={() => setExpanded(true)}>
-        {overridden ? `Venster aangepast: ${startVal}–${endVal}` : 'Venstertijden aanpassen'}
+        {overridden ? `Eetvenster aangepast: ${startVal}–${endVal}` : 'Eetvenster (open/sluit) aanpassen'}
       </button>
     )
   }

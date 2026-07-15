@@ -259,6 +259,8 @@ input[type='time'] {
 .bad-night-btn { color: var(--text-dim); font-weight: 600; font-size: 14px; }
 .window-override-toggle { align-self: flex-start; font-size: 13px; font-weight: 600; }
 .window-override { gap: 10px; }
+.fast-start-toggle { align-self: flex-start; font-size: 13px; font-weight: 600; }
+.fast-start-editor { gap: 10px; }
 .link-btn {
   color: var(--neon-cyan);
   text-decoration: underline;
