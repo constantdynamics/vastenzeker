@@ -257,6 +257,8 @@ input[type='time'] {
 
 /* ---------- slechte nacht ---------- */
 .bad-night-btn { color: var(--text-dim); font-weight: 600; font-size: 14px; }
+.window-override-toggle { align-self: flex-start; font-size: 13px; font-weight: 600; }
+.window-override { gap: 10px; }
 .link-btn {
   color: var(--neon-cyan);
   text-decoration: underline;
