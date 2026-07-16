@@ -160,6 +160,15 @@ input[type='time'] {
   box-shadow: 0 0 24px rgba(255, 77, 77, 0.55), 0 0 64px rgba(255, 77, 77, 0.25);
 }
 
+/* Venster nog dicht, vast niet gestart: bewust rustiger dan eet/vast-groen
+   en -rood — er is nu niets 'aan'. */
+.status-badge.idle {
+  color: var(--neon-purple);
+  background: rgba(167, 139, 250, 0.12);
+  border: 1px solid rgba(167, 139, 250, 0.4);
+  box-shadow: 0 0 24px rgba(167, 139, 250, 0.2);
+}
+
 .status-timer {
   font-variant-numeric: tabular-nums;
   font-size: 44px;
@@ -324,11 +333,8 @@ input[type='time'] {
   50% { background-position: 100% 50%; }
 }
 
-/* ---------- slechte nacht ---------- */
-.bad-night-btn { color: var(--text-dim); font-weight: 600; font-size: 14px; }
-.window-override-toggle { align-self: flex-start; font-size: 13px; font-weight: 600; }
+/* ---------- correctielinks (slechte nacht, starttijd, eetvenster) ---------- */
 .window-override { gap: 10px; }
-.fast-start-toggle { align-self: flex-start; font-size: 13px; font-weight: 600; }
 .fast-start-editor { gap: 10px; }
 .link-btn {
   color: var(--neon-cyan);
@@ -336,6 +342,25 @@ input[type='time'] {
   font-size: inherit;
   padding: 0;
 }
+.fix-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 6px 18px;
+}
+/* uitgeklapte editors en bevestigingen nemen de volle breedte */
+.fix-row > .card,
+.fix-row > .advice { flex-basis: 100%; }
+.fix-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--text-faint);
+  padding-bottom: 1px;
+}
+.fix-link:active { color: var(--text); }
 
 /* ---------- chips ---------- */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }

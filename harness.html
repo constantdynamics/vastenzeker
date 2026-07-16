@@ -1,0 +1,22 @@
+<!doctype html>
+<!-- Dev-harness: rendert de belangrijkste schermen met nepdata, zonder
+     Supabase-login. Alleen voor lokaal ontwerpen/screenshotten:
+     `npm run dev` en open /harness.html. Wordt niet meegebouwd (vite
+     bundelt alleen index.html). -->
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zip Your Lip — dev-harness</title>
+    <style>
+      /* De app-CSS maakt #root op desktop een rij (zijbalk + main); in het
+         harnas stapelen de secties gewoon, elk met een gecentreerde main. */
+      #root { display: block !important; max-width: none !important; }
+      #root > section > main.app-main { max-width: 1180px; margin: 0 auto; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/harness/main.tsx"></script>
+  </body>
+</html>

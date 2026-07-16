@@ -373,8 +373,13 @@
   gap: 6px;
 }
 .drink-list li { display: flex; flex-direction: column; gap: 6px; }
-.drink-row { display: flex; align-items: center; gap: 8px; font-size: 14px; }
-.drink-name { flex: 1; min-width: 0; }
+/* De naam mag nooit onder zijn eigen tekstbreedte krimpen (dan schuiven de
+   glyfen over de toelichting heen); een lange toelichting wikkelt in plaats
+   daarvan naar een eigen regel, rechts uitgelijnd. */
+.drink-row { display: flex; align-items: center; gap: 4px 8px; font-size: 14px; flex-wrap: wrap; }
+.drink-name { flex: 0 0 auto; }
+.drink-row > :nth-child(2) { margin-left: auto; }
+.drink-row .faint { text-align: right; min-width: 0; }
 .drink-toggle { text-align: left; font-size: 14px; }
 
 /* ---------- weekweergave: generieke basis (.nweek-*) ---------- */

@@ -76,7 +76,7 @@ export function WeekNav({
   )
 }
 
-export default function WeekView() {
+export default function WeekView({ onOpenDay }: { onOpenDay?: (date: Date) => void }) {
   const data = useNutritionData()
   const [weekOffset, setWeekOffset] = useState(0)
   const [generating, setGenerating] = useState(false)
@@ -84,6 +84,13 @@ export default function WeekView() {
 
   const dates = useMemo(() => weekDates(weekOffset), [weekOffset])
   const todayKey = dateKey(new Date())
+
+  // Alleen dagen die nog gepland kúnnen worden tellen mee: het verleden
+  // blijft historie. Is er niets te genereren, dan verdwijnt de knop.
+  const missingDays = dates.filter((d) => {
+    const dk = dateKey(d)
+    return dk >= todayKey && !data.planFor(dk)
+  }).length
 
   const generate = async () => {
     setGenerating(true)
@@ -137,14 +144,20 @@ export default function WeekView() {
     <div className="stack nplan">
       <WeekNav weekOffset={weekOffset} onWeekOffset={setWeekOffset} />
 
-      <button
-        className="btn btn-primary btn-wide"
-        onClick={() => void generate()}
-        disabled={generating}
-        aria-label="Genereer deze week"
-      >
-        {generating ? 'Bezig met plannen…' : 'Genereer deze week'}
-      </button>
+      {missingDays > 0 && (
+        <button
+          className="btn btn-primary btn-wide"
+          onClick={() => void generate()}
+          disabled={generating}
+          aria-label="Genereer deze week"
+        >
+          {generating
+            ? 'Bezig met plannen…'
+            : missingDays === 7
+              ? 'Genereer deze week'
+              : `Plan ${missingDays} ontbrekende ${missingDays === 1 ? 'dag' : 'dagen'}`}
+        </button>
+      )}
 
       <div className="nweek-grid">
         {dates.map((date) => {
@@ -159,9 +172,19 @@ export default function WeekView() {
           return (
             <article key={dk} className={`card nweek-day ${dk === todayKey ? 'today' : ''}`}>
               <header className="nweek-day-head">
-                <span className="nweek-date">
-                  {WEEKDAY_LABELS[weekdayOf(date)]} {shortDate(date)}
-                </span>
+                {onOpenDay ? (
+                  <button
+                    className="nweek-date nweek-date-btn"
+                    onClick={() => onOpenDay(date)}
+                    aria-label={`Open ${WEEKDAY_FULL[weekdayOf(date)]} ${shortDate(date)} in de dagweergave`}
+                  >
+                    {WEEKDAY_LABELS[weekdayOf(date)]} {shortDate(date)} ›
+                  </button>
+                ) : (
+                  <span className="nweek-date">
+                    {WEEKDAY_LABELS[weekdayOf(date)]} {shortDate(date)}
+                  </span>
+                )}
                 <span className="nweek-daytype" style={{ color: DAY_TYPE_COLORS[dayType] }}>
                   {DAY_TYPE_LABELS[dayType]}
                 </span>

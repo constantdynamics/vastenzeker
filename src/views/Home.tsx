@@ -169,18 +169,25 @@ export default function Home() {
                 onChangeStart={(d) => patchFast(activeFast.day, { started_at: d.toISOString() })}
               />
             )}
-            {fasting && (
+            {fasting ? (
               <p className="faint" style={{ textAlign: 'center' }}>
-                Draai aan de ring om je starttijd te finetunen · tik op start of einde voor een
-                exacte tijd · tik op de klok voor optellen/aftellen
+                Draai aan de ring · tik op start/einde voor exacte tijden · tik op de klok voor
+                op-/aftellen
+              </p>
+            ) : (
+              <p className="muted small" style={{ textAlign: 'center' }}>
+                {statusLine(status, activeFast?.started_at ?? null)}
               </p>
             )}
-            <p className="muted small" style={{ textAlign: 'center' }}>
-              {statusLine(status, activeFast?.started_at ?? null)}
-            </p>
           </section>
 
-          {!fasting && status.kind !== 'unplanned' && status.advisedStart && (
+          {/* Tijdens het eten zegt de klok al wanneer het venster sluit; de
+              indicator zou datzelfde tijdstip herhalen. Alleen tonen als hij
+              iets toevoegt: venster nog dicht, of het moment is al verstreken. */}
+          {!fasting &&
+            status.kind !== 'unplanned' &&
+            status.advisedStart &&
+            (status.overdue || status.kind !== 'eating') && (
             <div className={`advice ${status.overdue ? 'caution' : 'info'}`} role="status">
               <span>
                 {status.overdue
@@ -203,9 +210,13 @@ export default function Home() {
             </button>
           )}
 
-          {!fasting && status.kind !== 'unplanned' && <FastStartEditor />}
-          <BadNightButton />
-          <WindowOverrideEditor date={now} />
+          {/* Correcties horen bij elkaar: één rustige rij subtiele links,
+              uitgeklapte editors nemen de volle breedte. */}
+          <div className="fix-row">
+            {!fasting && status.kind !== 'unplanned' && <FastStartEditor />}
+            <BadNightButton />
+            <WindowOverrideEditor date={now} />
+          </div>
 
           {signal.show && (
             <div className="advice caution" role="status">
@@ -278,6 +289,19 @@ function StatusBadge({ kind }: { kind: string }) {
   }
   if (kind === 'unplanned') {
     return <span className="chip">Nog geen schema</span>
+  }
+  if (kind === 'idle') {
+    // Venster nog dicht en geen vast gestart: 'je mag eten' zou hier de
+    // verkeerde boodschap zijn terwijl de ring aftelt naar de opening.
+    return (
+      <span className="status-badge idle">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 3" />
+        </svg>
+        VENSTER DICHT
+      </span>
+    )
   }
   return (
     <span className="status-badge eat">

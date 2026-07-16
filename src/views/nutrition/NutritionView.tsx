@@ -18,6 +18,8 @@ const SUBVIEWS: { key: SubView; label: string }[] = [
 export default function NutritionView() {
   const nutrition = useNutrition()
   const [view, setView] = useState<SubView>('dag')
+  // Gedeelde datum: vanuit de weekweergave kun je een dag openen in de dagweergave.
+  const [dayDate, setDayDate] = useState(() => new Date())
 
   return (
     <NutritionContext.Provider value={nutrition}>
@@ -41,8 +43,15 @@ export default function NutritionView() {
           <p className="muted small">Voedingsbibliotheek laden…</p>
         ) : (
           <>
-            {view === 'dag' && <DayView />}
-            {view === 'week' && <WeekView />}
+            {view === 'dag' && <DayView date={dayDate} onDateChange={setDayDate} />}
+            {view === 'week' && (
+              <WeekView
+                onOpenDay={(d) => {
+                  setDayDate(d)
+                  setView('dag')
+                }}
+              />
+            )}
             {view === 'lijst' && <ShoppingView />}
             {view === 'ingredienten' && <IngredientsView />}
           </>
