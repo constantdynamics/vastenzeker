@@ -289,13 +289,8 @@ export function windowLengthHours(start: string, end: string): number {
 export function protocolName(start: string, end: string): string {
   const eat = windowLengthHours(start, end)
   const fast = 24 - eat
-  const known: Record<string, string> = {
-    '14:10': '14:10',
-    '16:8': '16:8',
-    '18:6': '18:6',
-    '20:4': '20:4',
-  }
-  const key = `${Math.round(fast)}:${Math.round(eat)}`
   if (eat <= 1.5) return 'OMAD'
-  return known[key] ?? `${Math.round(fast)} uur vasten / ${Math.round(eat)} uur eten`
+  // Altijd de compacte vorm (bv. '17:7'): de lange zin paste niet in de
+  // protocolbadge en het patroon 'vast:eet' is toch al de mentale eenheid.
+  return `${Math.round(fast)}:${Math.round(eat)}`
 }

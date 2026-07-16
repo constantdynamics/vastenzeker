@@ -160,6 +160,15 @@ input[type='time'] {
   box-shadow: 0 0 24px rgba(255, 77, 77, 0.55), 0 0 64px rgba(255, 77, 77, 0.25);
 }
 
+/* Venster nog dicht, vast niet gestart: bewust rustiger dan eet/vast-groen
+   en -rood — er is nu niets 'aan'. */
+.status-badge.idle {
+  color: var(--neon-purple);
+  background: rgba(167, 139, 250, 0.12);
+  border: 1px solid rgba(167, 139, 250, 0.4);
+  box-shadow: 0 0 24px rgba(167, 139, 250, 0.2);
+}
+
 .status-timer {
   font-variant-numeric: tabular-nums;
   font-size: 44px;

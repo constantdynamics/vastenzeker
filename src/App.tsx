@@ -43,7 +43,9 @@ export interface AppData {
   activeFast: FastDay | null
 }
 
-const DataContext = createContext<AppData | null>(null)
+// Geëxporteerd zodat de dev-harness (harness.html) schermen met nepdata kan
+// renderen zonder Supabase-login; de app zelf gebruikt alleen de provider hier.
+export const DataContext = createContext<AppData | null>(null)
 
 export function useAppData(): AppData {
   const ctx = useContext(DataContext)

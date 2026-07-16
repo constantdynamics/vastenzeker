@@ -181,7 +181,13 @@ export default function Home() {
             )}
           </section>
 
-          {!fasting && status.kind !== 'unplanned' && status.advisedStart && (
+          {/* Tijdens het eten zegt de klok al wanneer het venster sluit; de
+              indicator zou datzelfde tijdstip herhalen. Alleen tonen als hij
+              iets toevoegt: venster nog dicht, of het moment is al verstreken. */}
+          {!fasting &&
+            status.kind !== 'unplanned' &&
+            status.advisedStart &&
+            (status.overdue || status.kind !== 'eating') && (
             <div className={`advice ${status.overdue ? 'caution' : 'info'}`} role="status">
               <span>
                 {status.overdue
@@ -283,6 +289,19 @@ function StatusBadge({ kind }: { kind: string }) {
   }
   if (kind === 'unplanned') {
     return <span className="chip">Nog geen schema</span>
+  }
+  if (kind === 'idle') {
+    // Venster nog dicht en geen vast gestart: 'je mag eten' zou hier de
+    // verkeerde boodschap zijn terwijl de ring aftelt naar de opening.
+    return (
+      <span className="status-badge idle">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 3" />
+        </svg>
+        VENSTER DICHT
+      </span>
+    )
   }
   return (
     <span className="status-badge eat">

@@ -3,3 +3,6 @@ dist/
 dev-dist/
 *.local
 .DS_Store
+
+# build-artefacten van tsc
+tsconfig.tsbuildinfo

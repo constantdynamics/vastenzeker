@@ -85,6 +85,13 @@ export default function WeekView({ onOpenDay }: { onOpenDay?: (date: Date) => vo
   const dates = useMemo(() => weekDates(weekOffset), [weekOffset])
   const todayKey = dateKey(new Date())
 
+  // Alleen dagen die nog gepland kúnnen worden tellen mee: het verleden
+  // blijft historie. Is er niets te genereren, dan verdwijnt de knop.
+  const missingDays = dates.filter((d) => {
+    const dk = dateKey(d)
+    return dk >= todayKey && !data.planFor(dk)
+  }).length
+
   const generate = async () => {
     setGenerating(true)
     try {
@@ -137,14 +144,20 @@ export default function WeekView({ onOpenDay }: { onOpenDay?: (date: Date) => vo
     <div className="stack nplan">
       <WeekNav weekOffset={weekOffset} onWeekOffset={setWeekOffset} />
 
-      <button
-        className="btn btn-primary btn-wide"
-        onClick={() => void generate()}
-        disabled={generating}
-        aria-label="Genereer deze week"
-      >
-        {generating ? 'Bezig met plannen…' : 'Genereer deze week'}
-      </button>
+      {missingDays > 0 && (
+        <button
+          className="btn btn-primary btn-wide"
+          onClick={() => void generate()}
+          disabled={generating}
+          aria-label="Genereer deze week"
+        >
+          {generating
+            ? 'Bezig met plannen…'
+            : missingDays === 7
+              ? 'Genereer deze week'
+              : `Plan ${missingDays} ontbrekende ${missingDays === 1 ? 'dag' : 'dagen'}`}
+        </button>
+      )}
 
       <div className="nweek-grid">
         {dates.map((date) => {
