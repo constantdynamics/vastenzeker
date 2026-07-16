@@ -169,15 +169,16 @@ export default function Home() {
                 onChangeStart={(d) => patchFast(activeFast.day, { started_at: d.toISOString() })}
               />
             )}
-            {fasting && (
+            {fasting ? (
               <p className="faint" style={{ textAlign: 'center' }}>
-                Draai aan de ring om je starttijd te finetunen · tik op start of einde voor een
-                exacte tijd · tik op de klok voor optellen/aftellen
+                Draai aan de ring · tik op start/einde voor exacte tijden · tik op de klok voor
+                op-/aftellen
+              </p>
+            ) : (
+              <p className="muted small" style={{ textAlign: 'center' }}>
+                {statusLine(status, activeFast?.started_at ?? null)}
               </p>
             )}
-            <p className="muted small" style={{ textAlign: 'center' }}>
-              {statusLine(status, activeFast?.started_at ?? null)}
-            </p>
           </section>
 
           {!fasting && status.kind !== 'unplanned' && status.advisedStart && (
@@ -203,9 +204,13 @@ export default function Home() {
             </button>
           )}
 
-          {!fasting && status.kind !== 'unplanned' && <FastStartEditor />}
-          <BadNightButton />
-          <WindowOverrideEditor date={now} />
+          {/* Correcties horen bij elkaar: één rustige rij subtiele links,
+              uitgeklapte editors nemen de volle breedte. */}
+          <div className="fix-row">
+            {!fasting && status.kind !== 'unplanned' && <FastStartEditor />}
+            <BadNightButton />
+            <WindowOverrideEditor date={now} />
+          </div>
 
           {signal.show && (
             <div className="advice caution" role="status">

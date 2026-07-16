@@ -76,7 +76,7 @@ export function WeekNav({
   )
 }
 
-export default function WeekView() {
+export default function WeekView({ onOpenDay }: { onOpenDay?: (date: Date) => void }) {
   const data = useNutritionData()
   const [weekOffset, setWeekOffset] = useState(0)
   const [generating, setGenerating] = useState(false)
@@ -159,9 +159,19 @@ export default function WeekView() {
           return (
             <article key={dk} className={`card nweek-day ${dk === todayKey ? 'today' : ''}`}>
               <header className="nweek-day-head">
-                <span className="nweek-date">
-                  {WEEKDAY_LABELS[weekdayOf(date)]} {shortDate(date)}
-                </span>
+                {onOpenDay ? (
+                  <button
+                    className="nweek-date nweek-date-btn"
+                    onClick={() => onOpenDay(date)}
+                    aria-label={`Open ${WEEKDAY_FULL[weekdayOf(date)]} ${shortDate(date)} in de dagweergave`}
+                  >
+                    {WEEKDAY_LABELS[weekdayOf(date)]} {shortDate(date)} ›
+                  </button>
+                ) : (
+                  <span className="nweek-date">
+                    {WEEKDAY_LABELS[weekdayOf(date)]} {shortDate(date)}
+                  </span>
+                )}
                 <span className="nweek-daytype" style={{ color: DAY_TYPE_COLORS[dayType] }}>
                   {DAY_TYPE_LABELS[dayType]}
                 </span>

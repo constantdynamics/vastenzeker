@@ -33,7 +33,7 @@ export default function FastStartEditor() {
 
     if (!expanded) {
       return (
-        <button className="link-btn fast-start-toggle" onClick={() => setExpanded(true)}>
+        <button className="link-btn fix-link" onClick={() => setExpanded(true)}>
           Gestart om {formatHm(started)} — starttijd aanpassen
         </button>
       )
@@ -68,7 +68,7 @@ export default function FastStartEditor() {
   // Nog geen actief vasten: toestaan om alsnog vanaf een eerder moment te starten.
   if (!expanded) {
     return (
-      <button className="link-btn fast-start-toggle" onClick={() => setExpanded(true)}>
+      <button className="link-btn fix-link" onClick={() => setExpanded(true)}>
         Al eerder begonnen met vasten?
       </button>
     )

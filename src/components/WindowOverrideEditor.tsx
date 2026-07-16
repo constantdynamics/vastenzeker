@@ -23,7 +23,7 @@ export default function WindowOverrideEditor({ date }: { date: Date }) {
 
   if (!expanded) {
     return (
-      <button className="link-btn window-override-toggle" onClick={() => setExpanded(true)}>
+      <button className="link-btn fix-link" onClick={() => setExpanded(true)}>
         {overridden ? `Eetvenster aangepast: ${startVal}–${endVal}` : 'Eetvenster (open/sluit) aanpassen'}
       </button>
     )

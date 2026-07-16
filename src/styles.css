@@ -324,11 +324,8 @@ input[type='time'] {
   50% { background-position: 100% 50%; }
 }
 
-/* ---------- slechte nacht ---------- */
-.bad-night-btn { color: var(--text-dim); font-weight: 600; font-size: 14px; }
-.window-override-toggle { align-self: flex-start; font-size: 13px; font-weight: 600; }
+/* ---------- correctielinks (slechte nacht, starttijd, eetvenster) ---------- */
 .window-override { gap: 10px; }
-.fast-start-toggle { align-self: flex-start; font-size: 13px; font-weight: 600; }
 .fast-start-editor { gap: 10px; }
 .link-btn {
   color: var(--neon-cyan);
@@ -336,6 +333,25 @@ input[type='time'] {
   font-size: inherit;
   padding: 0;
 }
+.fix-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 6px 18px;
+}
+/* uitgeklapte editors en bevestigingen nemen de volle breedte */
+.fix-row > .card,
+.fix-row > .advice { flex-basis: 100%; }
+.fix-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--text-faint);
+  padding-bottom: 1px;
+}
+.fix-link:active { color: var(--text); }
 
 /* ---------- chips ---------- */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }

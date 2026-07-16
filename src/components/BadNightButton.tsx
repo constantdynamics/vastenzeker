@@ -91,11 +91,8 @@ export default function BadNightButton({ onChanged }: { onChanged?: () => void }
   }
 
   return (
-    <button className="btn btn-ghost btn-wide bad-night-btn" onClick={() => setConfirming(true)}>
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-        <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z" />
-      </svg>
-      Zeer slechte nacht? Sla het vasten vandaag over
+    <button className="link-btn fix-link" onClick={() => setConfirming(true)}>
+      Slechte nacht? Sla het vasten vandaag over
     </button>
   )
 }

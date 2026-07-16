@@ -241,3 +241,12 @@
   padding: 8px 14px;
 }
 .nplan .ning-off-form .btn { flex: 0 0 auto; }
+
+/* klikbare dagkop in het weekoverzicht: opent de dag in de dagweergave */
+.nweek-date-btn {
+  color: var(--neon-cyan);
+  font-weight: 800;
+  padding: 0;
+  text-align: left;
+}
+.nweek-date-btn:active { text-shadow: 0 0 8px var(--neon-cyan); }

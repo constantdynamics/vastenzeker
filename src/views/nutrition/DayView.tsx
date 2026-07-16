@@ -24,11 +24,16 @@ function fmtRemaining(min: number): string {
   return h > 0 ? `${h}u ${m}m` : `${m}m`
 }
 
-export default function DayView() {
+export default function DayView({
+  date,
+  onDateChange,
+}: {
+  date: Date
+  onDateChange: (d: Date) => void
+}) {
   const { contextFor, planResultFor, logsFor, ensurePlan, regenerate, nutritionProfile, loading } =
     useNutritionData()
 
-  const [date, setDate] = useState(() => new Date())
   const [now, setNow] = useState(() => new Date())
   const [regenBusy, setRegenBusy] = useState(false)
 
@@ -84,7 +89,7 @@ export default function DayView() {
           <button
             className="btn btn-ghost nday-arrow"
             aria-label="Vorige dag"
-            onClick={() => setDate((d) => addDays(d, -1))}
+            onClick={() => onDateChange(addDays(date, -1))}
           >
             ‹
           </button>
@@ -98,14 +103,14 @@ export default function DayView() {
           <button
             className="btn btn-ghost nday-arrow"
             aria-label="Volgende dag"
-            onClick={() => setDate((d) => addDays(d, 1))}
+            onClick={() => onDateChange(addDays(date, 1))}
           >
             ›
           </button>
         </div>
 
         {!isToday && (
-          <button className="link-btn nday-today" onClick={() => setDate(new Date())}>
+          <button className="link-btn nday-today" onClick={() => onDateChange(new Date())}>
             vandaag
           </button>
         )}
@@ -137,9 +142,10 @@ export default function DayView() {
         </div>
       </section>
 
-      <WindowOverrideEditor date={date} />
-
-      {isToday && <BadNightButton />}
+      <div className="fix-row">
+        {isToday && <BadNightButton />}
+        <WindowOverrideEditor date={date} />
+      </div>
 
       {plan && (
         <Meters
