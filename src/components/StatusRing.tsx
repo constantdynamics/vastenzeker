@@ -22,15 +22,24 @@ const CIRC = 2 * Math.PI * R
  * - tijdens het vasten kun je aan de ring DRAAIEN om de starttijd te
  *   finetunen (5-minutenstappen); loslaten slaat op via onScrubStart;
  * - tikken op de klok in het midden wisselt tussen aftellen (nog te gaan)
- *   en optellen (al bezig).
+ *   en optellen (al bezig);
+ * - het slotje linksonder zet het draaien uit, zodat scrollen over de ring
+ *   nooit per ongeluk je starttijd verschuift (touch-action blijft dan
+ *   gewoon scrollen).
  */
 export default function StatusRing({
   status,
   onScrubStart,
+  locked = false,
+  onToggleLock,
 }: {
   status: FastingStatus
   /** Alleen relevant bij een lopende vast: nieuwe starttijd na een ringdraai. */
   onScrubStart?: (newStart: Date) => void
+  /** Slot dicht = draaien aan de ring uitgeschakeld. */
+  locked?: boolean
+  /** Zonder handler wordt er geen slotje getoond. */
+  onToggleLock?: () => void
 }) {
   const [mode, setMode] = useState<CountMode>(() => {
     try {
@@ -44,7 +53,7 @@ export default function StatusRing({
   const wrapRef = useRef<HTMLDivElement>(null)
 
   const color = COLORS[status.kind]
-  const draggable = status.kind === 'fasting' && Boolean(onScrubStart)
+  const draggable = status.kind === 'fasting' && Boolean(onScrubStart) && !locked
   const totalMs = Math.max(1, status.totalMs)
 
   const progress = Math.min(1, Math.max(0, scrubFrac ?? status.progress))
@@ -155,7 +164,7 @@ export default function StatusRing({
     >
       {/* role op de svg, niet op de wrapper: anders is de klok-knop
           onbereikbaar voor screenreaders */}
-      <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} role="img" aria-label={ariaLabel(status)}>
+      <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} role="img" aria-label={ariaLabel(status, locked)}>
         <circle cx={SIZE / 2} cy={SIZE / 2} r={R} fill="none" stroke="var(--border)" strokeWidth="10" />
         <circle
           cx={SIZE / 2}
@@ -213,14 +222,44 @@ export default function StatusRing({
           </>
         )}
       </div>
+      {onToggleLock && (
+        <button
+          className={`ring-lock ${locked ? 'on' : ''}`}
+          onClick={onToggleLock}
+          // niet laten doorbubbelen: een tik op het slotje mag nooit zelf
+          // een ringdraai starten (de knop ligt binnen de ringzone)
+          onPointerDown={(e) => e.stopPropagation()}
+          aria-pressed={locked}
+          aria-label={
+            locked
+              ? 'Ring vergrendeld — tik om draaien mogelijk te maken'
+              : 'Ring ontgrendeld — tik om draaien te blokkeren'
+          }
+          title={locked ? 'Slot eraf halen' : 'Ring op slot zetten'}
+        >
+          {locked ? (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+              <rect x="5" y="11" width="14" height="9" rx="2" />
+              <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+            </svg>
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+              <rect x="5" y="11" width="14" height="9" rx="2" />
+              <path d="M8 11V7a4 4 0 0 1 7.5-2" />
+            </svg>
+          )}
+        </button>
+      )}
     </div>
   )
 }
 
-function ariaLabel(status: FastingStatus): string {
+function ariaLabel(status: FastingStatus, locked: boolean): string {
   switch (status.kind) {
     case 'fasting':
-      return `Je vast nu, nog ${formatClock(status.msToChange)} te gaan. Draai aan de ring om je starttijd aan te passen.`
+      return locked
+        ? `Je vast nu, nog ${formatClock(status.msToChange)} te gaan. De ring is vergrendeld.`
+        : `Je vast nu, nog ${formatClock(status.msToChange)} te gaan. Draai aan de ring om je starttijd aan te passen.`
     case 'eating':
       return `Eetvenster open, sluit over ${formatClock(status.msToChange)}`
     case 'idle':

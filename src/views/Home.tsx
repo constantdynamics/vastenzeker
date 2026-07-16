@@ -124,6 +124,28 @@ export default function Home() {
     pickFresh(shownIds)
   }
 
+  // Slotje op de timerring: dicht = niet draaibaar, zodat scrollen over de
+  // ring nooit per ongeluk de starttijd verschuift. Standaard dicht.
+  const LOCK_KEY = 'vz_timer_lock_v1'
+  const [ringLocked, setRingLocked] = useState(() => {
+    try {
+      return localStorage.getItem(LOCK_KEY) !== '0'
+    } catch {
+      return true
+    }
+  })
+  function toggleRingLock() {
+    setRingLocked((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem(LOCK_KEY, next ? '1' : '0')
+      } catch {
+        // opslag geblokkeerd: de keuze geldt dan alleen deze sessie
+      }
+      return next
+    })
+  }
+
   const [heavyOpen, setHeavyOpen] = useState(false)
   const streak = useMemo(() => computeStreak(fasts, profile, schedule), [fasts, profile, schedule])
   const signal = useMemo(() => wellbeingSignal(fasts, measurements), [fasts, measurements])
@@ -155,6 +177,8 @@ export default function Home() {
             <StatusBadge kind={status.kind} />
             <StatusRing
               status={status}
+              locked={ringLocked}
+              onToggleLock={fasting && activeFast ? toggleRingLock : undefined}
               onScrubStart={
                 fasting && activeFast
                   ? (d) => patchFast(activeFast.day, { started_at: d.toISOString() })
@@ -171,8 +195,9 @@ export default function Home() {
             )}
             {fasting ? (
               <p className="faint" style={{ textAlign: 'center' }}>
-                Draai aan de ring · tik op start/einde voor exacte tijden · tik op de klok voor
-                op-/aftellen
+                {ringLocked
+                  ? 'Ring op slot tegen per ongeluk draaien · tik op het slotje linksonder om aan te passen'
+                  : 'Draai aan de ring · tik op start/einde voor exacte tijden · tik op de klok voor op-/aftellen'}
               </p>
             ) : (
               <p className="muted small" style={{ textAlign: 'center' }}>
