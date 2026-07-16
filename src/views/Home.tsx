@@ -5,8 +5,9 @@ import TipCard from '../components/TipCard'
 import BadNightButton from '../components/BadNightButton'
 import WindowOverrideEditor from '../components/WindowOverrideEditor'
 import FastStartEditor from '../components/FastStartEditor'
+import FastEndpoints from '../components/FastEndpoints'
 import HeavyFlow from './HeavyFlow'
-import { computeStatus, dateKey, fastTarget, formatDuration, formatHm } from '../lib/time'
+import { computeStatus, dateKey, fastTarget, formatDuration, formatHm, protocolName } from '../lib/time'
 import { pickTip } from '../lib/tips'
 import { computeStreak } from '../lib/streak'
 import { wellbeingSignal } from '../lib/advice'
@@ -152,7 +153,28 @@ export default function Home() {
         <div className="home-col">
           <section className="status-hero" aria-live="polite">
             <StatusBadge kind={status.kind} />
-            <StatusRing status={status} />
+            <StatusRing
+              status={status}
+              onScrubStart={
+                fasting && activeFast
+                  ? (d) => patchFast(activeFast.day, { started_at: d.toISOString() })
+                  : undefined
+              }
+            />
+            {fasting && activeFast?.started_at && status.fastTargetEnd && (
+              <FastEndpoints
+                start={new Date(activeFast.started_at)}
+                end={status.fastTargetEnd}
+                protocol={protocolName(profile.window_start, profile.window_end)}
+                onChangeStart={(d) => patchFast(activeFast.day, { started_at: d.toISOString() })}
+              />
+            )}
+            {fasting && (
+              <p className="faint" style={{ textAlign: 'center' }}>
+                Draai aan de ring om je starttijd te finetunen · tik op start of einde voor een
+                exacte tijd · tik op de klok voor optellen/aftellen
+              </p>
+            )}
             <p className="muted small" style={{ textAlign: 'center' }}>
               {statusLine(status, activeFast?.started_at ?? null)}
             </p>
@@ -181,7 +203,7 @@ export default function Home() {
             </button>
           )}
 
-          {status.kind !== 'unplanned' && <FastStartEditor />}
+          {!fasting && status.kind !== 'unplanned' && <FastStartEditor />}
           <BadNightButton />
           <WindowOverrideEditor date={now} />
 
