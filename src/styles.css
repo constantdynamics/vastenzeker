@@ -169,6 +169,8 @@ input[type='time'] {
 
 .ring-wrap { position: relative; width: 220px; height: 220px; }
 .ring-wrap svg { transform: rotate(-90deg); }
+.ring-wrap.scrub { touch-action: none; cursor: grab; }
+.ring-wrap.scrubbing { cursor: grabbing; }
 .ring-center {
   position: absolute;
   inset: 0;
@@ -179,6 +181,73 @@ input[type='time'] {
   gap: 4px;
   text-align: center;
 }
+.ring-center-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 50%;
+}
+.ring-mode-hint {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* ---------- start/protocol/einde van de lopende vast ---------- */
+.fast-endpoints {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 8px;
+  width: 100%;
+  align-items: stretch;
+}
+.fe-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-raised);
+}
+.fe-chip.on,
+.fe-chip:active {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 12px -6px var(--neon-cyan);
+}
+.fe-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.fe-time {
+  font-size: 16px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.fe-start .fe-time { color: var(--status-red); }
+.fe-end .fe-time { color: var(--status-green); }
+.fe-proto {
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px dashed var(--border);
+  color: var(--text-dim);
+}
+.fe-proto-name { font-size: 14px; font-weight: 900; }
+.fe-proto-sub { font-size: 10px; color: var(--text-faint); }
+.fe-editor { grid-column: 1 / -1; gap: 10px; }
 
 /* ---------- knoppen ---------- */
 .btn {
