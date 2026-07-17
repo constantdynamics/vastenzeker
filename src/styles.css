@@ -177,9 +177,31 @@ input[type='time'] {
 }
 
 .ring-wrap { position: relative; width: 220px; height: 220px; }
-.ring-wrap svg { transform: rotate(-90deg); }
+/* alleen de ring-svg zelf draaien, niet het slotje-icoon in de hoek */
+.ring-wrap > svg { transform: rotate(-90deg); }
 .ring-wrap.scrub { touch-action: none; cursor: grab; }
 .ring-wrap.scrubbing { cursor: grabbing; }
+
+/* Slotje linksonder: dicht (rustig, gedimd) = ring niet draaibaar;
+   open (oranje) = aanpassen kan, dus even opletten. */
+.ring-lock {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.ring-lock:not(.on) {
+  color: var(--neon-orange);
+  border-color: var(--neon-orange);
+  box-shadow: 0 0 12px rgba(255, 159, 28, 0.35);
+}
 .ring-center {
   position: absolute;
   inset: 0;
